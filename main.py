@@ -3,7 +3,7 @@ import qdarkstyle
 import os
 # 1. Import QApplication and all the required widgets
 from PyQt5.QtWidgets import QApplication, QLabel, QWidget, QAction, QTabWidget,QVBoxLayout, QPushButton
-
+from attitude import AttitudeIndicator
 
 def main():
     os.environ['QT_API'] = 'pyqt5'
@@ -43,6 +43,10 @@ def main():
     tabOverview.layout = QVBoxLayout()
     pushButton1 = QPushButton("PyQt5 button")
     tabOverview.layout.addWidget(pushButton1)
+    
+    attitude = AttitudeIndicator()
+    tabOverview.layout.addWidget(attitude)
+    
     tabOverview.setLayout(tabOverview.layout)
     
     # Add tabs to widget
