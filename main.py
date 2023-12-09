@@ -19,7 +19,8 @@ def main():
     window = QWidget()
     app.setStyleSheet(qdarkstyle.load_stylesheet())
     window.setWindowTitle("PyQt App")
-    window.setGeometry(100, 100, 280, 80)
+    #window.setGeometry(100, 100, 800, 450)
+    window.setGeometry(100, 100, 1600, 900)
     #helloMsg = QLabel("<h1>Hello, World!</h1>", parent=window)
     #helloMsg.move(60, 15)
     
@@ -32,7 +33,7 @@ def main():
     tabMission = QWidget()
     tabSensors = QWidget()
     tabCustom = QWidget()
-    tabs.resize(800,450)
+    #tabs.resize(800,450)
     tabs.move(0,0)
     # Set text size of tabs
     tabs.setStyleSheet("QTabBar::tab { height: 23px; width: 150px; font-size: 12pt; }")
@@ -78,7 +79,7 @@ class MyServer(QtCore.QObject):
             print('error')
         self.server.newConnection.connect(self.onNewConnection)
 
-        print(self.server.isListening())
+        #print(self.server.isListening())
         self.attitude = attitude
 
     def onNewConnection(self):
@@ -96,6 +97,8 @@ class MyServer(QtCore.QObject):
                 msg = json.loads(message)
                 if "pitch" in msg:
                     self.attitude.setPitch(msg["pitch"])
+                if "roll" in msg:
+                    self.attitude.setRoll(msg["roll"])
             self.clientConnection.sendTextMessage(message)
 
     def processBinaryMessage(self,  message):

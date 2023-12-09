@@ -5,6 +5,7 @@ def hello():
     with connect("ws://localhost:1302") as websocket:
         msg = {}
         msg["pitch"] = 10
+        msg["roll"] = 20
         message = json.dumps(msg)
         websocket.send(message)
         message = websocket.recv()

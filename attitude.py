@@ -36,7 +36,8 @@ import sys
 from PyQt5 import QtCore # QtGui
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt
 from PyQt5.QtWidgets import QWidget, QApplication, QVBoxLayout, QHBoxLayout, QSlider
-from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QPixmap, QPalette
+from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QPixmap, QPalette, QPolygonF
+from math import sin, cos, pi
 
 class AttitudeIndicator(QWidget):
     """Widget for showing attitude"""
@@ -81,6 +82,8 @@ class AttitudeIndicator(QWidget):
         #p = self.palette()
         #p.setColor(self.backgroundRole(), Qt.red)
         #self.setPalette(p)
+        self.pitch = 10
+        self.roll = 20
 
 
     def mouseDoubleClickEvent (self, e):
@@ -224,14 +227,17 @@ class AttitudeIndicator(QWidget):
         qp.setPen(pen)
         qp.drawLine(-w, h / 2, 3 * w, h / 2)
 
+        r = min(w,h)
         # Drawing pitch lines
-        for ofset in [-180, 0, 180]:
+        font = QFont('Sans', max(7,r/50), QFont.Light)
+        qp.setFont(font)
+        for offset in [-180, 0, 180]:
             for i in range(-900, 900, 25):
-                pos = (((i / 10.0) + 25 + ofset) * h / 50.0)
+                pos = (((i / 10.0) + 25 + offset) * h / 50.0)
                 if i % 100 == 0:
-                    length = 0.35 * w
+                    length = 0.35 * r
                     if i != 0:
-                        if ofset == 0:
+                        if offset == 0:
                             qp.drawText((w / 2) + (length / 2) + (w * 0.06),
                                         pos, "{}".format(-i / 10))
                             qp.drawText((w / 2) - (length / 2) - (w * 0.08),
@@ -242,9 +248,9 @@ class AttitudeIndicator(QWidget):
                             qp.drawText((w / 2) - (length / 2) - (w * 0.08),
                                         pos, "{}".format(i / 10))
                 elif i % 50 == 0:
-                    length = 0.2 * w
+                    length = 0.2 * r
                 else:
-                    length = 0.1 * w
+                    length = 0.1 * r
 
                 qp.drawLine((w / 2) - (length / 2), pos,
                             (w / 2) + (length / 2), pos)
@@ -338,12 +344,33 @@ class AttitudeIndicator(QWidget):
             qp.setFont(QFont('Sans', max(7,h/11), QFont.DemiBold))
             qp.drawText(0,0,w,h, QtCore.Qt.AlignCenter, 'AUTO')
             
-        r = min(w,h)
         center = QtCore.QPoint(w/2, h/2)
         qp.setBrush(QColor(0, 0, 0, 0))
         pen = QPen(self.palette().brush(QPalette.Window), 2, QtCore.Qt.SolidLine)
         qp.setPen(pen)
         qp.drawEllipse(center, r/2, r/2)
+
+        # Draw roll indicator
+        pen = QPen(QColor(255, 255, 255), 2, QtCore.Qt.SolidLine)
+        qp.setPen(pen)
+        for angle in range(-90, 91, 10):
+            i = angle*pi/180 + self.roll*pi/180
+            l = 0.9
+            if angle%30==0:
+                l = 0.8
+            x1 = sin(i)*r/2 + center.x()
+            y1 = -cos(i)*r/2 + center.y()
+            x2 = sin(i)*r/2*l + center.x()
+            y2 = -cos(i)*r/2*l + center.y()
+            qp.drawLine(x1, y1, x2, y2)
+        
+        # Draw roll marker triangle
+        pen = QPen(QColor(0, 0, 0), 2, QtCore.Qt.SolidLine)
+        qp.setPen(pen)
+        qp.drawPolygon(QPolygonF([QtCore.QPointF(center.x()-r/2*0.1, center.y()-r/2*0.8),
+                                  QtCore.QPointF(center.x()+r/2*0.1, center.y()-r/2*0.8),
+                                  QtCore.QPointF(center.x(), center.y()-r/2)]))
+        
         #pen = QPen(QColor(217, 217, 217), 2, QtCore.Qt.SolidLine)
         #pen = QPen(QColor(0,0,0,0), 2, QtCore.Qt.SolidLine)
         pen = QPen(self.palette().brush(QPalette.Window), 2, QtCore.Qt.SolidLine)
