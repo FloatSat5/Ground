@@ -4,6 +4,10 @@ import os
 # 1. Import QApplication and all the required widgets
 from PyQt5.QtWidgets import QApplication, QLabel, QWidget, QAction, QTabWidget,QVBoxLayout, QPushButton
 from attitude import AttitudeIndicator
+from websockets.server import serve
+import asyncio
+from PyQt5 import QtCore, QtWebSockets, QtNetwork
+import json
 
 def main():
     os.environ['QT_API'] = 'pyqt5'
@@ -56,8 +60,52 @@ def main():
     # 4. Show your application's GUI
     window.show()
 
+    #asyncio.run(wsServe())
     # 5. Run your application's event loop
+    serverObject = QtWebSockets.QWebSocketServer('My Socket', QtWebSockets.QWebSocketServer.NonSecureMode)
+    server = MyServer(serverObject, attitude)
+    serverObject.closed.connect(app.quit)
     sys.exit(app.exec())
+    
+class MyServer(QtCore.QObject):
+    def __init__(self, parent, attitude):
+        super(QtCore.QObject, self).__init__(parent)
+        self.clients = []
+        self.server = QtWebSockets.QWebSocketServer(parent.serverName(), parent.secureMode(), parent)
+        if self.server.listen(QtNetwork.QHostAddress.LocalHost, 1302):
+            print('Connected: '+self.server.serverName()+' : '+self.server.serverAddress().toString()+':'+str(self.server.serverPort()))
+        else:
+            print('error')
+        self.server.newConnection.connect(self.onNewConnection)
+
+        print(self.server.isListening())
+        self.attitude = attitude
+
+    def onNewConnection(self):
+        self.clientConnection = self.server.nextPendingConnection()
+        self.clientConnection.textMessageReceived.connect(self.processTextMessage)
+
+        self.clientConnection.binaryMessageReceived.connect(self.processBinaryMessage)
+        self.clientConnection.disconnected.connect(self.socketDisconnected)
+
+        self.clients.append(self.clientConnection)
+
+    def processTextMessage(self,  message):
+        if (self.clientConnection):
+            if message.startswith('{'):
+                msg = json.loads(message)
+                if "pitch" in msg:
+                    self.attitude.setPitch(msg["pitch"])
+            self.clientConnection.sendTextMessage(message)
+
+    def processBinaryMessage(self,  message):
+        if (self.clientConnection):
+            self.clientConnection.sendBinaryMessage(message)
+
+    def socketDisconnected(self):
+        if (self.clientConnection):
+            self.clients.remove(self.clientConnection)
+            self.clientConnection.deleteLater()
 
 if __name__ == "__main__":
     main()
