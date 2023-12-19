@@ -82,8 +82,8 @@ class AttitudeIndicator(QWidget):
         #p = self.palette()
         #p.setColor(self.backgroundRole(), Qt.red)
         #self.setPalette(p)
-        self.pitch = 10
-        self.roll = 20
+        #self.pitch = 10
+        #self.roll = 20
 
 
     def mouseDoubleClickEvent (self, e):
@@ -233,6 +233,9 @@ class AttitudeIndicator(QWidget):
         qp.setFont(font)
         for offset in [-180, 0, 180]:
             for i in range(-900, 900, 25):
+            #for i in range(-100, 100, 25):
+            #i = 0
+            #if True:
                 pos = (((i / 10.0) + 25 + offset) * h / 50.0)
                 if i % 100 == 0:
                     length = 0.35 * r
