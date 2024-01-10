@@ -77,25 +77,74 @@ class Main():
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(tabs, 0)
         
-        # Add elements to mission tab
-        tabPID.layout = QHBoxLayout()
-        self.createPIDSection(tabPID.layout)
-        tabPID.setLayout(tabPID.layout)
+        # Add mission tab
+        tabMission.layout = QVBoxLayout()
+        self.createMissionTab(tabMission.layout)
+        tabMission.setLayout(tabMission.layout)
         
         # Add sensor tab
         tabSensors.layout = QVBoxLayout()
-        self.createSensorSection(tabSensors.layout)
+        self.createSensorTab(tabSensors.layout)
         tabSensors.setLayout(tabSensors.layout)
+        
+        # Add elements to mission tab
+        tabPID.layout = QVBoxLayout()
+        self.createPIDTab(tabPID.layout)
+        tabPID.setLayout(tabPID.layout)
 
         # 4. Show your application's GUI
         window.show()
-        tabs.setCurrentIndex(2)
+        tabs.setCurrentIndex(1)
 
         #asyncio.run(wsServe())
         # 5. Run your application's event loop
         sys.exit(app.exec())
         
-    def createSensorSection(self, parent):
+    def createMissionTab(self, parent):
+        self.createParameter(parent, "mosav", label="Motor angular velocity [deg/min]", max=180)
+        self.createParameter(parent, "sangp", label="Satellite angular position [deg]", min=-180, max=180)
+        self.createParameter(parent, "sangv", label="Satellite angular velocity [deg/min]", max=180)
+        
+        # Create button to turn off satellite
+        offButton = QPushButton("Turn off satellite")
+        offButton.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        offButton.clicked.connect(lambda: self.server.sendText("swoff, 1"))
+        parent.addWidget(offButton)
+        
+        # Create button to start finding the debris
+        findDebrisButton = QPushButton("Find debris")
+        findDebrisButton.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        findDebrisButton.clicked.connect(lambda: self.server.sendText("fideb, 1"))
+        parent.addWidget(findDebrisButton)
+        
+        # Create button to extend arm
+        extendArmButton = QPushButton("Extend arm")
+        extendArmButton.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        extendArmButton.clicked.connect(lambda: self.server.sendText("exarm, 1"))
+        parent.addWidget(extendArmButton)
+        
+        # Create button to retract arm
+        retractArmButton = QPushButton("Retract arm")
+        retractArmButton.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        retractArmButton.clicked.connect(lambda: self.server.sendText("rearm, 1"))
+        parent.addWidget(retractArmButton)
+        
+        # Create toggle for electromagnet
+        magnetToggle = QPushButton("Toggle electromagnet")
+        magnetToggle.setStyleSheet("font-size: 14pt; font-weight: bold;background-color : darkred")
+        magnetToggle.setCheckable(True)
+        magnetToggle.clicked.connect(lambda: self.server.sendText(f"semag, {1 if magnetToggle.isChecked() else 0}"))
+        magnetToggle.clicked.connect(lambda: self.changeColor(magnetToggle))
+        parent.addWidget(magnetToggle)
+        
+    def changeColor(self, button):
+        if button.isChecked():
+            button.setStyleSheet("font-size: 14pt; font-weight: bold;background-color : green")
+        else:
+            button.setStyleSheet("font-size: 14pt; font-weight: bold;background-color : darkred")
+        
+        
+    def createSensorTab(self, parent):
         # Create angular position plot
         angPosPlot = PlotWidget()
         self.angPosPlot = angPosPlot
@@ -143,8 +192,6 @@ class Main():
         eleCurrentPlot.addLegend()
         eleCurrentPlot.plot(self.eleCurrent_mA[0], self.eleCurrent_mA[1], name="Current", pen='r')
         parent.addWidget(eleCurrentPlot)
-        
-        
 
     def initAngPlot(self, plot):
         plot.showGrid(x=True, y=True)
@@ -155,19 +202,41 @@ class Main():
         plot.plot(self.angVel[0], self.angVel[2], name="Pitch", pen='g')
         plot.plot(self.angVel[0], self.angVel[3], name="Yaw", pen='b')
         
-    def createPIDSection(self, parent):
+    def createPIDTab(self, parent):
         # section for pid values
-        pidLayout = QVBoxLayout()
+        piMotAngVelLayout = QVBoxLayout()
         # PID label
-        pidLabel = QLabel("PID")
-        pidLabel.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        pidLabel.setAlignment(QtCore.Qt.AlignTop)
-        pidLabel.setAlignment(QtCore.Qt.AlignHCenter)
-        pidLayout.addWidget(pidLabel)
-        self.createParameter(pidLayout, "pid.K_p", label="K_p")
-        self.createParameter(pidLayout, "pid.K_i", label="K_i")
-        self.createParameter(pidLayout, "pid.K_d", label="K_d")
-        parent.addLayout(pidLayout)
+        piMotAngVelLabel = QLabel("PI motor angular velocity")
+        piMotAngVelLabel.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        piMotAngVelLabel.setAlignment(QtCore.Qt.AlignTop)
+        piMotAngVelLabel.setAlignment(QtCore.Qt.AlignHCenter)
+        piMotAngVelLayout.addWidget(piMotAngVelLabel)
+        self.createParameter(piMotAngVelLayout, "gkpmw", label="K_p")
+        self.createParameter(piMotAngVelLayout, "gkimw", label="K_i")
+        #self.createParameter(pidLayout, "gkpsa", label="K_d")
+        parent.addLayout(piMotAngVelLayout)
+        
+        piSatAngleLayout = QVBoxLayout()
+        piSatAngle = QLabel("PI sat angle")
+        piSatAngle.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        piSatAngle.setAlignment(QtCore.Qt.AlignTop)
+        piSatAngle.setAlignment(QtCore.Qt.AlignHCenter)
+        piSatAngleLayout.addWidget(piSatAngle)
+        self.createParameter(piSatAngleLayout, "gkpsa", label="K_p")
+        self.createParameter(piSatAngleLayout, "gkisa", label="K_i")
+        parent.addLayout(piSatAngleLayout)
+        
+        # section for sat angular velocity
+        satAngVelLayout = QVBoxLayout()
+        satAngVelLabel = QLabel("PI sat angular velocity")
+        satAngVelLabel.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        satAngVelLabel.setAlignment(QtCore.Qt.AlignTop)
+        satAngVelLabel.setAlignment(QtCore.Qt.AlignHCenter)
+        satAngVelLayout.addWidget(satAngVelLabel)
+        self.createParameter(satAngVelLayout, "gkpsw", label="K_p")
+        self.createParameter(satAngVelLayout, "gkisw", label="K_i")
+        parent.addLayout(satAngVelLayout)
+        
         
     def createParameter(self, parent, name, min = 0, max = 2, value = 1, decimalPlaces = 3, label=None):
         if label is None:
@@ -185,6 +254,14 @@ class Main():
         label.setMinimumWidth(50)
         #label.setMaximumWidth(50)
         firstLine.addWidget(label)
+        
+        # Value display and input
+        display = QLineEdit(("{:." + str(decimalPlaces) + "f}").format(value))
+        display.setAlignment(QtCore.Qt.AlignCenter)
+        display.setStyleSheet("font-size: 12pt;")
+        display.setMinimumWidth(70)
+        #display.setMaximumWidth(50)
+        firstLine.addWidget(display)
         
         # Min value input
         minLabel = QLabel("Min")
@@ -211,14 +288,6 @@ class Main():
         
         firstLine.addWidget(minInput)
         
-        # Value display
-        display = QLabel(("{:." + str(decimalPlaces) + "f}").format(value))
-        display.setAlignment(QtCore.Qt.AlignCenter)
-        display.setStyleSheet("font-size: 12pt;")
-        display.setMinimumWidth(70)
-        #display.setMaximumWidth(50)
-        firstLine.addWidget(display)
-        
         # Max value input
         maxLabel = QLabel("Max")
         maxLabel.setAlignment(QtCore.Qt.AlignRight)
@@ -244,6 +313,9 @@ class Main():
         slider.valueChanged.connect(lambda v: self.valueChanged(v/scale, display, name))
         secondLine.addWidget(slider)
         
+        # connect textChanged to slider
+        display.textChanged.connect(lambda v: condFunc(lambda: slider.setValue(float(v)*scale), v != ""))
+        
         minInput.textChanged.connect(lambda v: condFunc(lambda: slider.setMinimum(float(v)*scale), v != ""))
         maxInput.textChanged.connect(lambda v: condFunc(lambda: slider.setMaximum(float(v)*scale), v != ""))
         
@@ -253,7 +325,8 @@ class Main():
     
     def valueChanged(self, value, display, name):
         display.setText(str(value))
-        self.server.sendText(json.dumps({name: value}))
+        #self.server.sendText(json.dumps({name: value}))
+        self.server.sendText(f"{name}, {value}")
     
     def subFunction(self, message):
         #print(message)
@@ -279,7 +352,6 @@ class Main():
             elif teleType.startswith('magst'):
                 eleState = "On" if message.split(',')[2].strip() == "1" else "Off"
                 self.magnetStatusDisplay.setText(f"Electromagnet status: {eleState}")
-                
     
     def handleAngVel(self, message):
         self.handleAngDataPlot(message, self.angVel, self.angVelPlot)
