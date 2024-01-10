@@ -9,6 +9,8 @@ import asyncio
 from PyQt5 import QtCore, QtWebSockets, QtNetwork
 from PyQt5.QtGui import QDoubleValidator
 import json
+from pyqtgraph import PlotWidget, plot
+import time
 
 def condFunc(func, cond):
     if cond:
@@ -79,14 +81,34 @@ class Main():
         tabPID.layout = QHBoxLayout()
         self.createPIDSection(tabPID.layout)
         tabPID.setLayout(tabPID.layout)
+        
+        # Add sensor tab
+        tabSensors.layout = QVBoxLayout()
+        self.createSensorSection(tabSensors.layout)
+        tabSensors.setLayout(tabSensors.layout)
 
         # 4. Show your application's GUI
         window.show()
-        tabs.setCurrentIndex(4)
+        tabs.setCurrentIndex(2)
 
         #asyncio.run(wsServe())
         # 5. Run your application's event loop
         sys.exit(app.exec())
+        
+    def createSensorSection(self, parent):
+        # Create angular position plot
+        angPosPlot = PlotWidget()
+        self.angPosPlot = angPosPlot
+        angPosPlot.setLabel('left', 'Angular position', units='deg')
+        angPosPlot.setLabel('bottom', 'Time', units='s')
+        angPosPlot.showGrid(x=True, y=True)
+        angPosPlot.setYRange(-180, 180)
+        angPosPlot.setXRange(0, 10)
+        angPosPlot.addLegend()
+        angPosPlot.plot(self.angPos[0], self.angPos[1], name="Pitch", pen='r')
+        angPosPlot.plot(self.angPos[0], self.angPos[2], name="Roll", pen='g')
+        angPosPlot.plot(self.angPos[0], self.angPos[3], name="Yaw", pen='b')
+        parent.addWidget(angPosPlot)
         
     def createPIDSection(self, parent):
         # section for pid values
@@ -196,6 +218,36 @@ class Main():
                 self.attitude.setPitch(msg["pitch"])
             if "roll" in msg:
                 self.attitude.setRoll(msg["roll"])
+        else:
+            command = message.split(',')[1].strip()
+            if command.startswith('angpo'):
+                self.handleAngPos(message)
+            
+    def handleAngPos(self, message):
+        msg = message.split(',')
+        if len(msg) != 5:
+            return
+        #self.angPos[0].append(time.time())
+        self.angPos[0].append(float(msg[0]))
+        self.angPos[1].append(float(msg[2]))
+        self.angPos[2].append(float(msg[3]))
+        self.angPos[3].append(float(msg[4]))
+        #self.angPos[0] = self.angPos[0][-100:]
+        #self.angPos[1] = self.angPos[1][-100:]
+        #self.angPos[2] = self.angPos[2][-100:]
+        #self.angPos[3] = self.angPos[3][-100:]
+
+        self.angPosPlot.clear()
+        # Plot new data
+        self.angPosPlot.plot(self.angPos[0], self.angPos[1], name="Pitch", pen='r')
+        self.angPosPlot.plot(self.angPos[0], self.angPos[2], name="Roll", pen='g')
+        self.angPosPlot.plot(self.angPos[0], self.angPos[3], name="Yaw", pen='b')
+        self.angPosPlot.setXRange(self.angPos[0][-1] - 10, self.angPos[0][-1])
+            
+    
+    def __init__(self):
+        self.angVel = [[] * 4] # time, roll, pitch, yaw
+        self.angPos = [[], [], [], []] # time, roll, pitch, yaw
     
 class MyServer(QtCore.QObject):
     def __init__(self, parent):

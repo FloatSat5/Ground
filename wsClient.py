@@ -17,8 +17,9 @@ def main():
 def run():
     with connect("ws://localhost:1302") as websocket:
         signal.signal(signal.SIGINT, lambda sig, frame: signal_handler(sig, frame, websocket))
-        publisher(websocket)
+        #publisher(websocket)
         #subscriber(websocket)
+        publisherAngPos(websocket)
         
         
 def publisher(websocket):
@@ -40,6 +41,28 @@ def sendPitch(websocket, pitch):
     websocket.send(message)
     #message = websocket.recv()
     
+def publisherAngPos(websocket):
+    sleepTime = 1
+    count = 0
+    step = 10
+    while True:
+        roll = (count*step - 120) % 360
+        if roll > 180:
+            roll -= 360
+        pitch = (count*step) % 360
+        if pitch > 180:
+            pitch -= 360
+        yaw = (count*step + 120) % 360
+        if yaw > 180:
+            yaw -= 360
+        sendAngPos(websocket, roll, pitch, yaw, count)
+        count += 1
+        sleep(sleepTime)
+    
+def sendAngPos(websocket, roll, pitch, yaw, msgNum):
+    msg = f"{msgNum}, angpo, {roll}, {pitch}, {yaw}"
+    websocket.send(msg)
+    
 def subscriber(websocket):
     while True:
         message = websocket.recv()
@@ -47,7 +70,7 @@ def subscriber(websocket):
     
 def signal_handler(sig, frame, websocket):
     print('Stopping...')
-    websocket.close()
+    #websocket.close()
     exit()
 
 if __name__ == "__main__":
