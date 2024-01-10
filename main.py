@@ -101,14 +101,59 @@ class Main():
         self.angPosPlot = angPosPlot
         angPosPlot.setLabel('left', 'Angular position', units='deg')
         angPosPlot.setLabel('bottom', 'Time', units='s')
-        angPosPlot.showGrid(x=True, y=True)
-        angPosPlot.setYRange(-180, 180)
-        angPosPlot.setXRange(0, 10)
-        angPosPlot.addLegend()
-        angPosPlot.plot(self.angPos[0], self.angPos[1], name="Pitch", pen='r')
-        angPosPlot.plot(self.angPos[0], self.angPos[2], name="Roll", pen='g')
-        angPosPlot.plot(self.angPos[0], self.angPos[3], name="Yaw", pen='b')
+        self.initAngPlot(angPosPlot)
         parent.addWidget(angPosPlot)
+        
+        # Create angular velocity plot
+        angVelPlot = PlotWidget()
+        self.angVelPlot = angVelPlot
+        angVelPlot.setLabel('left', 'Angular velocity', units='deg/s')
+        angVelPlot.setLabel('bottom', 'Time', units='s')
+        self.initAngPlot(angVelPlot)
+        parent.addWidget(angVelPlot)
+        
+        # Create arm position display
+        self.armPosDisplay = QLabel("Arm position: Unknown")
+        parent.addWidget(self.armPosDisplay)
+        
+        # Create electromagnet status display
+        self.magnetStatusDisplay = QLabel("Electromagnet status: Unknown")
+        parent.addWidget(self.magnetStatusDisplay)
+        
+        # Create battery voltage plot
+        batVoltPlot = PlotWidget()
+        self.batVoltPlot = batVoltPlot
+        batVoltPlot.setLabel('left', 'Battery voltage', units='V')
+        batVoltPlot.setLabel('bottom', 'Time', units='s')
+        batVoltPlot.showGrid(x=True, y=True)
+        batVoltPlot.setYRange(0, 12)
+        batVoltPlot.setXRange(0, 10)
+        batVoltPlot.addLegend()
+        batVoltPlot.plot(self.batVolt[0], self.batVolt[1], name="Voltage", pen='r')
+        parent.addWidget(batVoltPlot)
+        
+        # Create current plot
+        eleCurrentPlot = PlotWidget()
+        self.eleCurrentPlot = eleCurrentPlot
+        eleCurrentPlot.setLabel('left', 'Current', units='mA')
+        eleCurrentPlot.setLabel('bottom', 'Time', units='s')
+        eleCurrentPlot.showGrid(x=True, y=True)
+        eleCurrentPlot.setYRange(0, 10)
+        eleCurrentPlot.setXRange(0, 10)
+        eleCurrentPlot.addLegend()
+        eleCurrentPlot.plot(self.eleCurrent_mA[0], self.eleCurrent_mA[1], name="Current", pen='r')
+        parent.addWidget(eleCurrentPlot)
+        
+        
+
+    def initAngPlot(self, plot):
+        plot.showGrid(x=True, y=True)
+        plot.setYRange(-180, 180)
+        plot.setXRange(0, 10)
+        plot.addLegend()
+        plot.plot(self.angVel[0], self.angVel[1], name="Roll", pen='r')
+        plot.plot(self.angVel[0], self.angVel[2], name="Pitch", pen='g')
+        plot.plot(self.angVel[0], self.angVel[3], name="Yaw", pen='b')
         
     def createPIDSection(self, parent):
         # section for pid values
@@ -211,7 +256,7 @@ class Main():
         self.server.sendText(json.dumps({name: value}))
     
     def subFunction(self, message):
-        print(message)
+        #print(message)
         if message.startswith('{'):
             msg = json.loads(message)
             if "pitch" in msg:
@@ -219,35 +264,68 @@ class Main():
             if "roll" in msg:
                 self.attitude.setRoll(msg["roll"])
         else:
-            command = message.split(',')[1].strip()
-            if command.startswith('angpo'):
+            teleType = message.split(',')[1].strip()
+            if   teleType.startswith('angve'):
+                self.handleAngVel(message)
+            elif teleType.startswith('angpo'):
                 self.handleAngPos(message)
+            elif teleType.startswith('armpo'):
+                armState = "Extended" if message.split(',')[2].strip() == "1" else "Retracted"
+                self.armPosDisplay.setText(f"Arm position: {armState}")
+            elif teleType.startswith('batvo'):
+                self.handleDataPlot(message, self.batVolt, self.batVoltPlot, "Voltage")
+            elif teleType.startswith('elcur'):
+                self.handleDataPlot(message, self.eleCurrent_mA, self.eleCurrentPlot, "Current")
+            elif teleType.startswith('magst'):
+                eleState = "On" if message.split(',')[2].strip() == "1" else "Off"
+                self.magnetStatusDisplay.setText(f"Electromagnet status: {eleState}")
+                
+    
+    def handleAngVel(self, message):
+        self.handleAngDataPlot(message, self.angVel, self.angVelPlot)
             
     def handleAngPos(self, message):
+        self.handleAngDataPlot(message, self.angPos, self.angPosPlot)
+
+    def handleAngDataPlot(self, message, data, plot):
         msg = message.split(',')
         if len(msg) != 5:
             return
         #self.angPos[0].append(time.time())
-        self.angPos[0].append(float(msg[0]))
-        self.angPos[1].append(float(msg[2]))
-        self.angPos[2].append(float(msg[3]))
-        self.angPos[3].append(float(msg[4]))
-        #self.angPos[0] = self.angPos[0][-100:]
-        #self.angPos[1] = self.angPos[1][-100:]
-        #self.angPos[2] = self.angPos[2][-100:]
-        #self.angPos[3] = self.angPos[3][-100:]
+        data[0].append(float(msg[0]))
+        data[1].append(float(msg[2]))
+        data[2].append(float(msg[3]))
+        data[3].append(float(msg[4]))
+        #data[0] = data[0][-100:]
+        #data[1] = data[1][-100:]
+        #data[2] = data[2][-100:]
+        #data[3] = data[3][-100:]
 
-        self.angPosPlot.clear()
+        plot.clear()
         # Plot new data
-        self.angPosPlot.plot(self.angPos[0], self.angPos[1], name="Pitch", pen='r')
-        self.angPosPlot.plot(self.angPos[0], self.angPos[2], name="Roll", pen='g')
-        self.angPosPlot.plot(self.angPos[0], self.angPos[3], name="Yaw", pen='b')
-        self.angPosPlot.setXRange(self.angPos[0][-1] - 10, self.angPos[0][-1])
-            
+        plot.plot(data[0], data[1], name="Roll", pen='r')
+        plot.plot(data[0], data[2], name="Pitch", pen='g')
+        plot.plot(data[0], data[3], name="Yaw", pen='b')
+        plot.setXRange(data[0][-1] - 10, data[0][-1])
+        
+    def handleDataPlot(self, message, data, plot, label):
+        msg = message.split(',')
+        if len(msg) != 3:
+            return
+        #self.angPos[0].append(time.time())
+        data[0].append(float(msg[0]))
+        data[1].append(float(msg[2]))
+
+        plot.clear()
+        # Plot new data
+        plot.plot(data[0], data[1], name=label, pen='r')
+        plot.setXRange(data[0][-1] - 10, data[0][-1])
     
     def __init__(self):
-        self.angVel = [[] * 4] # time, roll, pitch, yaw
+        self.angVel = [[], [], [], []] # time, roll, pitch, yaw
         self.angPos = [[], [], [], []] # time, roll, pitch, yaw
+        self.batVolt = [[], []] # time, voltage
+        self.eleCurrent_mA = [[], []] # time, current
     
 class MyServer(QtCore.QObject):
     def __init__(self, parent):

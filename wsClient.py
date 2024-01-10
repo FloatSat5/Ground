@@ -55,12 +55,17 @@ def publisherAngPos(websocket):
         yaw = (count*step + 120) % 360
         if yaw > 180:
             yaw -= 360
-        sendAngPos(websocket, roll, pitch, yaw, count)
+        sendAngData(websocket, roll, pitch, yaw, count)
+        sendAngData(websocket, yaw, roll, pitch, count, command="angve")
+        websocket.send(f"{count}, armpo, {count%2}")
+        websocket.send(f"{count}, batvo, {count%10}")
+        websocket.send(f"{count}, elcur, {count%10}")
+        websocket.send(f"{count}, magst, {count%2}")
         count += 1
         sleep(sleepTime)
     
-def sendAngPos(websocket, roll, pitch, yaw, msgNum):
-    msg = f"{msgNum}, angpo, {roll}, {pitch}, {yaw}"
+def sendAngData(websocket, roll, pitch, yaw, msgNum, command="angpo"):
+    msg = f"{msgNum}, {command}, {roll}, {pitch}, {yaw}"
     websocket.send(msg)
     
 def subscriber(websocket):
