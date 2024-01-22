@@ -357,6 +357,11 @@ class Main():
         self.handleAngDataPlot(message, self.angVel, self.angVelPlot)
             
     def handleAngPos(self, message):
+        msg = message.split(',')
+        if len(msg) != 5:
+            return
+        self.attitude.setRoll(float(msg[2]))
+        self.attitude.setPitch(float(msg[3]))
         self.handleAngDataPlot(message, self.angPos, self.angPosPlot)
 
     def handleAngDataPlot(self, message, data, plot):
