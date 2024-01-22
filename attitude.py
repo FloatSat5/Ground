@@ -36,7 +36,7 @@ import sys
 from PyQt5 import QtCore # QtGui
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt
 from PyQt5.QtWidgets import QWidget, QApplication, QVBoxLayout, QHBoxLayout, QSlider
-from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QPixmap, QPalette, QPolygonF
+from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QPixmap, QPalette, QPolygonF, QRegion, QBitmap
 from math import sin, cos, pi
 
 class AttitudeIndicator(QWidget):
@@ -192,15 +192,26 @@ class AttitudeIndicator(QWidget):
         size = self.size()
         w = size.width()
         h = size.height()
+        r = min(w,h)
 
         blue = QColor(min(255,0+self.crashed), min(255,61+self.freefall),144, 255 if self.pixmap is None else 64)
         maroon = QColor(min(255,59+self.crashed), min(255,41+self.freefall), 39, 255 if self.pixmap is None else 64)
 
+        mask = QBitmap(w, h)
+        #mask.fill(Qt.white)
+        qpMask = QPainter()
+        qpMask.begin(mask)
+        qpMask.setBrush(QColor(255, 255, 255))
+        qpMask.drawRect(0, 0, w, h)
+        qpMask.setBrush(QColor(0, 0, 0))
+        qpMask.drawEllipse((w-r)/2, (h-r)/2, r, r)
+        qpMask.end()
 
         # Draw background image (camera)
         if self.pixmap is not None:
             qp.drawPixmap(0, 0, w, h, self.pixmap)
 
+        qp.setClipRegion(QRegion(mask))
         qp.translate(w / 2, h / 2)
         qp.rotate(self.roll)
         qp.translate(0, (self.pitch * h) / 50)
@@ -227,7 +238,6 @@ class AttitudeIndicator(QWidget):
         qp.setPen(pen)
         qp.drawLine(-w, h / 2, 3 * w, h / 2)
 
-        r = min(w,h)
         # Drawing pitch lines
         font = QFont('Sans', max(7,r/50), QFont.Light)
         qp.setFont(font)
@@ -379,8 +389,8 @@ class AttitudeIndicator(QWidget):
         pen = QPen(self.palette().brush(QPalette.Window), 2, QtCore.Qt.SolidLine)
         
         qp.setPen(pen)
-        for i in range(1, int(max(w,h)-r/2)):
-            qp.drawEllipse(center, r/2+i, r/2+i)
+        #for i in range(1, int(max(w,h)-r/2)):
+        #    qp.drawEllipse(center, r/2+i, r/2+i)
 
 
 if __name__ == "__main__":
