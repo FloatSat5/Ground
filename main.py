@@ -11,6 +11,7 @@ from PyQt5.QtGui import QDoubleValidator
 import json
 from pyqtgraph import PlotWidget, plot
 import time
+from compass import CompassWidget
 
 def condFunc(func, cond):
     if cond:
@@ -63,13 +64,15 @@ class Main():
         tabs.addTab(tabPID, "PID")
         
         # Create first tab
-        tabOverview.layout = QVBoxLayout()
-        pushButton1 = QPushButton("PyQt5 button")
-        tabOverview.layout.addWidget(pushButton1)
+        tabOverview.layout = QHBoxLayout()
         
         attitude = AttitudeIndicator()
         self.attitude = attitude
         tabOverview.layout.addWidget(attitude)
+        
+        compass = CompassWidget()
+        self.compass = compass
+        tabOverview.layout.addWidget(compass)
         
         tabOverview.setLayout(tabOverview.layout)
         
@@ -362,6 +365,7 @@ class Main():
             return
         self.attitude.setRoll(float(msg[2]))
         self.attitude.setPitch(float(msg[3]))
+        self.compass.setAngle(float(msg[4]))
         self.handleAngDataPlot(message, self.angPos, self.angPosPlot)
 
     def handleAngDataPlot(self, message, data, plot):
