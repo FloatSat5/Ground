@@ -36,7 +36,7 @@ class Main():
         window.setWindowTitle("PyQt App")
         #window.setGeometry(100, 100, 800, 450)
         scale = 1.5
-        window.setGeometry(100, 100, 800 * scale, 450 * scale)
+        window.setGeometry(100, 100, int(800 * scale), int(450 * scale))
         #window.setGeometry(100, 100, 1600, 900)
         #helloMsg = QLabel("<h1>Hello, World!</h1>", parent=window)
         #helloMsg.move(60, 15)
@@ -104,9 +104,9 @@ class Main():
         sys.exit(app.exec())
         
     def createMissionTab(self, parent):
-        self.createParameter(parent, "mosav", label="Motor angular velocity [deg/min]", max=180)
-        self.createParameter(parent, "sangp", label="Satellite angular position [deg]", min=-180, max=180)
-        self.createParameter(parent, "sangv", label="Satellite angular velocity [deg/min]", max=180)
+        self.createParameter(parent, "mosav", label="Motor angular velocity [deg/min]", max=180, buttonLabel="Set")
+        self.createParameter(parent, "sangp", label="Satellite angular position [deg]", min=-180, max=180, buttonLabel="Set")
+        self.createParameter(parent, "sangv", label="Satellite angular velocity [deg/min]", max=180, buttonLabel="Set")
         
         # Create button to turn off satellite
         offButton = QPushButton("Turn off satellite")
@@ -241,7 +241,7 @@ class Main():
         parent.addLayout(satAngVelLayout)
         
         
-    def createParameter(self, parent, name, min = 0, max = 2, value = 1, decimalPlaces = 3, label=None):
+    def createParameter(self, parent, name, min = 0, max = 2, value = 1, decimalPlaces = 3, label=None, buttonLabel=None):
         if label is None:
             label = name
         scale = 10**decimalPlaces
@@ -265,6 +265,14 @@ class Main():
         display.setMinimumWidth(70)
         #display.setMaximumWidth(50)
         firstLine.addWidget(display)
+
+        if buttonLabel is not None:
+            button = QPushButton(buttonLabel)
+            button.setStyleSheet("font-size: 12pt;")
+            button.setMinimumWidth(70)
+            #button.setMaximumWidth(50)
+            button.clicked.connect(lambda: self.server.sendText(f"{name}, {display.text()}"))
+            firstLine.addWidget(button)
         
         # Min value input
         minLabel = QLabel("Min")
@@ -308,19 +316,22 @@ class Main():
         firstLine.addWidget(maxInput)
         
         slider = QSlider(QtCore.Qt.Horizontal)
-        slider.setMinimum(min*scale)
-        slider.setMaximum(max*scale)
-        slider.setValue(value*scale)
+        slider.setMinimum(int(min*scale))
+        slider.setMaximum(int(max*scale))
+        slider.setValue(int(value*scale))
         slider.setTickPosition(QSlider.TicksBelow)
-        slider.setTickInterval(scale/10)
-        slider.valueChanged.connect(lambda v: self.valueChanged(v/scale, display, name))
+        slider.setTickInterval(int(scale/10))
+        if buttonLabel is None:
+            slider.valueChanged.connect(lambda v: self.valueChanged(v/scale, display, name))
+        else:
+            slider.valueChanged.connect(lambda v: display.setText(str(v/scale)))
         secondLine.addWidget(slider)
         
         # connect textChanged to slider
-        display.textChanged.connect(lambda v: condFunc(lambda: slider.setValue(float(v)*scale), v != ""))
+        display.textChanged.connect(lambda v: condFunc(lambda: slider.setValue(int(float(v)*scale)), v != ""))
         
-        minInput.textChanged.connect(lambda v: condFunc(lambda: slider.setMinimum(float(v)*scale), v != ""))
-        maxInput.textChanged.connect(lambda v: condFunc(lambda: slider.setMaximum(float(v)*scale), v != ""))
+        minInput.textChanged.connect(lambda v: condFunc(lambda: slider.setMinimum(int(float(v)*scale)), v != ""))
+        maxInput.textChanged.connect(lambda v: condFunc(lambda: slider.setMaximum(int(float(v)*scale)), v != ""))
         
         verLayout.addLayout(firstLine)
         verLayout.addLayout(secondLine)
@@ -340,6 +351,8 @@ class Main():
             if "roll" in msg:
                 self.attitude.setRoll(msg["roll"])
         else:
+            if ',' not in message:
+                return
             teleType = message.split(',')[1].strip()
             if   teleType.startswith('angve'):
                 self.handleAngVel(message)
