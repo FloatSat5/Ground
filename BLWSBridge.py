@@ -7,6 +7,7 @@ from websockets.exceptions import ConnectionClosed
 # BluetoothSerialPort-Websocket bidirectional bridge
 class BluetoothWebsocketBridge:
     def main(self):
+        print("Starting...")
         self.websocket = None
         aioSerial = AioSerial(port='COM5', baudrate=115200, timeout=10)
         self.aioSerial = aioSerial
@@ -34,10 +35,14 @@ class BluetoothWebsocketBridge:
                 await self.ws_client_connection()
             except ConnectionRefusedError as e:
                 pass
+            except asyncio.CancelledError:
+                pass
+            except asyncio.TimeoutError:
+                pass
             await asyncio.sleep(1)
 
     async def ws_client_connection(self):
-        async with websockets.connect("ws://localhost:1302", ) as websocket:
+        async with websockets.connect("ws://localhost:1302", ping_timeout=None) as websocket:
             self.websocket = websocket
             print(f"Connected to {websocket.remote_address}")
             await self.ws_loop(websocket)
