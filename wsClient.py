@@ -3,11 +3,14 @@ import json
 from time import sleep
 import signal
 import sys
+import websockets
+import asyncio
 
 
 def main():
     try:
-        run()
+        #run()
+        asyncio.run(runAsServer())
     except ConnectionRefusedError as e:
         sleep(1)
     except Exception as e:
@@ -20,6 +23,10 @@ def run():
         #publisher(websocket)
         #subscriber(websocket)
         publisherAngPos(websocket)
+        
+async def runAsServer():
+    async with websockets.serve(subscriberAsync, "", 1302, ping_interval=None):
+        await asyncio.Future()  # run forever
         
         
 def publisher(websocket):
@@ -72,6 +79,19 @@ def subscriber(websocket):
     while True:
         message = websocket.recv()
         print(message)
+        
+async def subscriberAsync(websocket : websockets.WebSocketServerProtocol, path):
+    asyncio.create_task(publisherAsync(websocket, path))
+    while True:
+        #message = await websocket.recv()
+        #print(message)
+        await asyncio.sleep(1)
+        
+async def publisherAsync(websocket : websockets.WebSocketServerProtocol, path):
+    print("Enter messages: ")
+    while True:
+        msg = input()
+        await websocket.send(msg)
     
 def signal_handler(sig, frame, websocket):
     print('Stopping...')
