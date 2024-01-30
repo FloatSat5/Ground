@@ -73,7 +73,7 @@ class AttitudeIndicator(QWidget):
         # Update self at 30hz
         self.updateTimer = QtCore.QTimer(self)
         self.updateTimer.timeout.connect(self.updateAI)
-        self.updateTimer.start(1000/self.hz)
+        self.updateTimer.start(int(1000/self.hz))
 
         self.msgRemove = 0
         #self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
@@ -204,7 +204,7 @@ class AttitudeIndicator(QWidget):
         qpMask.setBrush(QColor(255, 255, 255))
         qpMask.drawRect(0, 0, w, h)
         qpMask.setBrush(QColor(0, 0, 0))
-        qpMask.drawEllipse((w-r)/2, (h-r)/2, r, r)
+        qpMask.drawEllipse(int((w-r)/2), int((h-r)/2), r, r)
         qpMask.end()
 
         # Draw background image (camera)
@@ -357,11 +357,11 @@ class AttitudeIndicator(QWidget):
             qp.setFont(QFont('Sans', max(7,h/11), QFont.DemiBold))
             qp.drawText(0,0,w,h, QtCore.Qt.AlignCenter, 'AUTO')
             
-        center = QtCore.QPoint(w/2, h/2)
+        center = QtCore.QPoint(w//2, h//2)
         qp.setBrush(QColor(0, 0, 0, 0))
         pen = QPen(self.palette().brush(QPalette.Window), 2, QtCore.Qt.SolidLine)
         qp.setPen(pen)
-        qp.drawEllipse(center, r/2, r/2)
+        qp.drawEllipse(center, r//2, r//2)
 
         # Draw roll indicator
         pen = QPen(QColor(255, 255, 255), 2, QtCore.Qt.SolidLine)
