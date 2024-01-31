@@ -226,47 +226,47 @@ class AttitudeIndicator(QWidget):
         #Draw the blue
         qp.setPen(blue)
         qp.setBrush(blue)
-        qp.drawRect(-w, h/2, 3*w, -3*h)
+        qp.drawRect(-w, h//2, 3*w, -3*h)
 
         #Draw the maroon
         qp.setPen(maroon)
         qp.setBrush(maroon)
-        qp.drawRect(-w, h/2, 3*w, 3*h)
+        qp.drawRect(-w, h//2, 3*w, 3*h)
 
         pen = QPen(QColor(255, 255, 255), 1.5,
             QtCore.Qt.SolidLine)
         qp.setPen(pen)
-        qp.drawLine(-w, h / 2, 3 * w, h / 2)
+        qp.drawLine(-w, h//2, 3 * w, h//2)
 
         # Drawing pitch lines
-        font = QFont('Sans', max(7,r/50), QFont.Light)
+        font = QFont('Sans', max(7,r//50), QFont.Light)
         qp.setFont(font)
         for offset in [-180, 0, 180]:
             for i in range(-900, 900, 25):
             #for i in range(-100, 100, 25):
             #i = 0
             #if True:
-                pos = (((i / 10.0) + 25 + offset) * h / 50.0)
+                pos = int(((i / 10.0) + 25 + offset) * h / 50.0)
                 if i % 100 == 0:
                     length = 0.35 * r
                     if i != 0:
                         if offset == 0:
-                            qp.drawText((w / 2) + (length / 2) + (w * 0.06),
+                            qp.drawText(int((w / 2) + (length / 2) + (w * 0.06)),
                                         pos, "{}".format(-i / 10))
-                            qp.drawText((w / 2) - (length / 2) - (w * 0.08),
+                            qp.drawText(int((w / 2) - (length / 2) - (w * 0.08)),
                                         pos, "{}".format(-i / 10))
                         else:
-                            qp.drawText((w / 2) + (length / 2) + (w * 0.06),
+                            qp.drawText(int((w / 2) + (length / 2) + (w * 0.06)),
                                         pos, "{}".format(i / 10))
-                            qp.drawText((w / 2) - (length / 2) - (w * 0.08),
+                            qp.drawText(int((w / 2) - (length / 2) - (w * 0.08)),
                                         pos, "{}".format(i / 10))
                 elif i % 50 == 0:
                     length = 0.2 * r
                 else:
                     length = 0.1 * r
 
-                qp.drawLine((w / 2) - (length / 2), pos,
-                            (w / 2) + (length / 2), pos)
+                qp.drawLine(int((w / 2) - (length / 2)), pos,
+                            int((w / 2) + (length / 2)), pos)
 
         qp.setWorldMatrixEnabled(False)
 
@@ -274,7 +274,7 @@ class AttitudeIndicator(QWidget):
             QtCore.Qt.SolidLine)
         qp.setBrush(QColor(0, 0, 0))
         qp.setPen(pen)
-        qp.drawLine(0, h / 2, w, h / 2)
+        qp.drawLine(0, h // 2, w, h // 2)
         
         
         
@@ -286,21 +286,21 @@ class AttitudeIndicator(QWidget):
                          QtCore.Qt.SolidLine)
         qp.setBrush(QColor(255, 255, 255))
         qp.setPen(pen)
-        fh = max(7,h/50)
+        fh = max(7,h//50)
         font = QFont('Sans', fh, QFont.Light)
         qp.setFont(font)
         qp.resetTransform()
 
 
-        qp.translate(0,h/2)      
+        qp.translate(0,h//2)      
         if not self.hover:  
-            qp.drawText(w-fh*10, fh/2, str(round(self.hoverASL,2)))  # asl
+            qp.drawText(w-fh*10, int(fh/2), str(round(self.hoverASL,2)))  # asl
                
         
         if self.hover:
-            qp.drawText(w-fh*10, fh/2, str(round(self.hoverTargetASL,2)))  # target asl (center)    
+            qp.drawText(w-fh*10, int(fh/2), str(round(self.hoverTargetASL,2)))  # target asl (center)    
             diff = round(self.hoverASL-self.hoverTargetASL,2)
-            pos_y = -h/6*diff
+            pos_y = int(-h/6*diff)
             
             # cap to +- 2.8m
             if diff<-2.8:
@@ -320,20 +320,20 @@ class AttitudeIndicator(QWidget):
          # FreeFall Detection
         qp.resetTransform()
         qp.translate(0,h/2)
-        qp.drawText(fh*6, fh/2, str(round(self.ff_acc+1,2))+'G')  # acc
+        qp.drawText(fh*6, int(fh/2), str(round(self.ff_acc+1,2))+'G')  # acc
 
-        pos_y = h/6*self.ff_acc
+        pos_y = int(h/6*self.ff_acc)
 
         # cap to +- 2.8m
         if self.ff_acc<-2.8:
-            pos_y = -h/6*-2.8
+            pos_y = int(-h/6*-2.8)
         elif self.ff_acc>2.8:
-            pos_y= -h/6*2.8
+            pos_y= int(-h/6*2.8)
         else:
-            pos_y = -h/6*self.ff_acc
-        qp.drawLine(fh*4.5,0,fh*4.5,pos_y) # vertical line
-        qp.drawLine(fh*4.7,0,fh*4.5,0) # left horizontal line
-        qp.drawLine(fh*4.2,pos_y,fh*4.5,pos_y) #right horizontal line
+            pos_y = int(-h/6*self.ff_acc)
+        qp.drawLine(int(fh*4.5),0,int(fh*4.5),pos_y) # vertical line
+        qp.drawLine(int(fh*4.7),0,int(fh*4.5),0) # left horizontal line
+        qp.drawLine(int(fh*4.2),pos_y,int(fh*4.5),pos_y) #right horizontal line
 
 
         # Draw killswitch
@@ -371,10 +371,10 @@ class AttitudeIndicator(QWidget):
             l = 0.9
             if angle%30==0:
                 l = 0.8
-            x1 = sin(i)*r/2 + center.x()
-            y1 = -cos(i)*r/2 + center.y()
-            x2 = sin(i)*r/2*l + center.x()
-            y2 = -cos(i)*r/2*l + center.y()
+            x1 = int(sin(i)*r/2 + center.x())
+            y1 = int(-cos(i)*r/2 + center.y())
+            x2 = int(sin(i)*r/2*l + center.x())
+            y2 = int(-cos(i)*r/2*l + center.y())
             qp.drawLine(x1, y1, x2, y2)
         
         # Draw roll marker triangle
