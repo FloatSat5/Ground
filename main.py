@@ -214,8 +214,8 @@ class Main():
         piMotAngVelLabel.setAlignment(QtCore.Qt.AlignTop)
         piMotAngVelLabel.setAlignment(QtCore.Qt.AlignHCenter)
         piMotAngVelLayout.addWidget(piMotAngVelLabel)
-        self.createParameter(piMotAngVelLayout, "gkpmw", label="K_p")
-        self.createParameter(piMotAngVelLayout, "gkimw", label="K_i")
+        self.createParameter(piMotAngVelLayout, "gkpmw", label="K_p", buttonLabel="Set")
+        self.createParameter(piMotAngVelLayout, "gkimw", label="K_i", buttonLabel="Set")
         #self.createParameter(pidLayout, "gkpsa", label="K_d")
         parent.addLayout(piMotAngVelLayout)
         
@@ -225,8 +225,8 @@ class Main():
         piSatAngle.setAlignment(QtCore.Qt.AlignTop)
         piSatAngle.setAlignment(QtCore.Qt.AlignHCenter)
         piSatAngleLayout.addWidget(piSatAngle)
-        self.createParameter(piSatAngleLayout, "gkpsa", label="K_p")
-        self.createParameter(piSatAngleLayout, "gkisa", label="K_i")
+        self.createParameter(piSatAngleLayout, "gkpsa", label="K_p", buttonLabel="Set")
+        self.createParameter(piSatAngleLayout, "gkisa", label="K_i", buttonLabel="Set")
         parent.addLayout(piSatAngleLayout)
         
         # section for sat angular velocity
@@ -236,8 +236,8 @@ class Main():
         satAngVelLabel.setAlignment(QtCore.Qt.AlignTop)
         satAngVelLabel.setAlignment(QtCore.Qt.AlignHCenter)
         satAngVelLayout.addWidget(satAngVelLabel)
-        self.createParameter(satAngVelLayout, "gkpsw", label="K_p")
-        self.createParameter(satAngVelLayout, "gkisw", label="K_i")
+        self.createParameter(satAngVelLayout, "gkpsw", label="K_p", buttonLabel="Set")
+        self.createParameter(satAngVelLayout, "gkisw", label="K_i", buttonLabel="Set")
         parent.addLayout(satAngVelLayout)
         
         
