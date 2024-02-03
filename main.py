@@ -2,7 +2,7 @@ import sys
 import qdarkstyle
 import os
 # 1. Import QApplication and all the required widgets
-from PyQt5.QtWidgets import QApplication, QLabel, QWidget, QAction, QTabWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSlider, QLineEdit
+from PyQt5.QtWidgets import QApplication, QLabel, QWidget, QAction, QTabWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSlider, QLineEdit, QComboBox
 from attitude import AttitudeIndicator
 from websockets.server import serve
 import asyncio
@@ -96,6 +96,11 @@ class Main():
         tabSensors.layout = QVBoxLayout()
         self.createSensorTab(tabSensors.layout)
         tabSensors.setLayout(tabSensors.layout)
+
+        # Add custom tab
+        tabCustom.layout = QVBoxLayout()
+        self.createCustomTab(tabCustom.layout)
+        tabCustom.setLayout(tabCustom.layout)
         
         # Add elements to mission tab
         tabPID.layout = QVBoxLayout()
@@ -156,31 +161,18 @@ class Main():
         
     def createSensorTab(self, parent):
         # Create motor angular velocity plot
-        motAngVelPlot = PlotWidget()
-        self.motAngVelPlot = motAngVelPlot
-        motAngVelPlot.setLabel('left', 'Angular velocity', units='deg/s')
-        motAngVelPlot.setLabel('bottom', 'Time', units='s')
-        motAngVelPlot.showGrid(x=True, y=True)
-        motAngVelPlot.setYRange(-90, 90)
-        motAngVelPlot.setXRange(0, 10)
-        motAngVelPlot.addLegend()
-        motAngVelPlot.plot(self.motAngVel[0], self.motAngVel[1], name="Angular velocity", pen='r')
+        motAngVelPlot = self.createMotAngVelPlot()
+        self.motAngVelPlots.append(motAngVelPlot)
         parent.addWidget(motAngVelPlot)
 
         # Create angular position plot
-        angPosPlot = PlotWidget()
-        self.angPosPlot = angPosPlot
-        angPosPlot.setLabel('left', 'Angular position', units='deg')
-        angPosPlot.setLabel('bottom', 'Time', units='s')
-        self.initAngPlot(angPosPlot)
+        angPosPlot = self.createAngPlot('Angular position', 'deg')
+        self.angPosPlots.append(angPosPlot)
         parent.addWidget(angPosPlot)
         
         # Create angular velocity plot
-        angVelPlot = PlotWidget()
-        self.angVelPlot = angVelPlot
-        angVelPlot.setLabel('left', 'Angular velocity', units='deg/s')
-        angVelPlot.setLabel('bottom', 'Time', units='s')
-        self.initAngPlot(angVelPlot)
+        angVelPlot = self.createAngPlot('Angular velocity', 'deg/s')
+        self.angVelPlots.append(angVelPlot)
         parent.addWidget(angVelPlot)
         
         # Create arm position display
@@ -192,30 +184,30 @@ class Main():
         parent.addWidget(self.magnetStatusDisplay)
         
         # Create battery voltage plot
-        batVoltPlot = PlotWidget()
-        self.batVoltPlot = batVoltPlot
-        batVoltPlot.setLabel('left', 'Battery voltage', units='V')
-        batVoltPlot.setLabel('bottom', 'Time', units='s')
-        batVoltPlot.showGrid(x=True, y=True)
-        batVoltPlot.setYRange(0, 12)
-        batVoltPlot.setXRange(0, 10)
-        batVoltPlot.addLegend()
-        batVoltPlot.plot(self.batVolt[0], self.batVolt[1], name="Voltage", pen='r')
+        batVoltPlot = self.createBatVoltPlot()
+        self.batVoltPlots.append(batVoltPlot)
         parent.addWidget(batVoltPlot)
         
         # Create current plot
-        eleCurrentPlot = PlotWidget()
-        self.eleCurrentPlot = eleCurrentPlot
-        eleCurrentPlot.setLabel('left', 'Current', units='mA')
-        eleCurrentPlot.setLabel('bottom', 'Time', units='s')
-        eleCurrentPlot.showGrid(x=True, y=True)
-        eleCurrentPlot.setYRange(0, 10)
-        eleCurrentPlot.setXRange(0, 10)
-        eleCurrentPlot.addLegend()
-        eleCurrentPlot.plot(self.eleCurrent_mA[0], self.eleCurrent_mA[1], name="Current", pen='r')
+        eleCurrentPlot = self.createEleCurrentPlot()
+        self.eleCurrentPlots.append(eleCurrentPlot)
         parent.addWidget(eleCurrentPlot)
 
-    def initAngPlot(self, plot):
+    def createMotAngVelPlot(self):
+        motAngVelPlot = PlotWidget()
+        motAngVelPlot.setLabel('left', 'Motor Angular velocity', units='deg/s')
+        motAngVelPlot.setLabel('bottom', 'Time', units='s')
+        motAngVelPlot.showGrid(x=True, y=True)
+        motAngVelPlot.setYRange(-90, 90)
+        motAngVelPlot.setXRange(0, 10)
+        motAngVelPlot.addLegend()
+        motAngVelPlot.plot(self.motAngVel[0], self.motAngVel[1], name="Motor Angular velocity", pen='r')
+        return motAngVelPlot
+
+    def createAngPlot(self, name="Angular position", units="deg"):
+        plot = PlotWidget()
+        plot.setLabel('left', name, units=units)
+        plot.setLabel('bottom', 'Time', units='s')
         plot.showGrid(x=True, y=True)
         plot.setYRange(-180, 180)
         plot.setXRange(0, 10)
@@ -223,6 +215,66 @@ class Main():
         plot.plot(self.angVel[0], self.angVel[1], name="Roll", pen='r')
         plot.plot(self.angVel[0], self.angVel[2], name="Pitch", pen='g')
         plot.plot(self.angVel[0], self.angVel[3], name="Yaw", pen='b')
+        return plot
+
+    def createEleCurrentPlot(self):
+        eleCurrentPlot = PlotWidget()
+        eleCurrentPlot.setLabel('left', 'Current', units='mA')
+        eleCurrentPlot.setLabel('bottom', 'Time', units='s')
+        eleCurrentPlot.showGrid(x=True, y=True)
+        eleCurrentPlot.setYRange(0, 10)
+        eleCurrentPlot.setXRange(0, 10)
+        eleCurrentPlot.addLegend()
+        eleCurrentPlot.plot(self.eleCurrent_mA[0], self.eleCurrent_mA[1], name="Current", pen='r')
+        return eleCurrentPlot
+    
+    def createBatVoltPlot(self):
+        batVoltPlot = PlotWidget()
+        batVoltPlot.setLabel('left', 'Battery voltage', units='V')
+        batVoltPlot.setLabel('bottom', 'Time', units='s')
+        batVoltPlot.showGrid(x=True, y=True)
+        batVoltPlot.setYRange(0, 12)
+        batVoltPlot.setXRange(0, 10)
+        batVoltPlot.addLegend()
+        batVoltPlot.plot(self.batVolt[0], self.batVolt[1], name="Voltage", pen='r')
+        return batVoltPlot
+    
+    def createCustomTab(self, parent):
+        plotDict = {}
+        self.plotDict = plotDict
+
+        motAngVelPlot = self.createMotAngVelPlot()
+        self.motAngVelPlots.append(motAngVelPlot)
+        plotDict["Motor angular velocity"] = motAngVelPlot
+
+        angPosPlot = self.createAngPlot('Angular position', 'deg')
+        self.angPosPlots.append(angPosPlot)
+        plotDict["Angular position"] = angPosPlot
+
+        angVelPlot = self.createAngPlot('Angular velocity', 'deg/s')
+        self.angVelPlots.append(angVelPlot)
+        plotDict["Angular velocity"] = angVelPlot
+
+        batVoltPlot = self.createBatVoltPlot()
+        self.batVoltPlots.append(batVoltPlot)
+        plotDict["Battery voltage"] = batVoltPlot
+
+        eleCurrentPlot = self.createEleCurrentPlot()
+        self.eleCurrentPlots.append(eleCurrentPlot)
+        plotDict["Current"] = eleCurrentPlot
+
+        # Create dropdown for selecting plot
+        plotDropdown = QComboBox()
+        plotDropdown.addItems(list(plotDict.keys()))
+        plotDropdown.currentIndexChanged.connect(lambda i: self.changePlot(i, self.plotDict, parent))
+        parent.addWidget(plotDropdown)
+        parent.addWidget(list(plotDict.values())[0])
+
+    def changePlot(self, index, plotDict, parent):
+        lastPlot = parent.itemAt(1).widget()
+        lastPlot.setParent(None)
+        parent.addWidget(list(plotDict.values())[index])
+
         
     def createPIDTab(self, parent):
         # section for pid values
@@ -377,7 +429,7 @@ class Main():
                 message = f"{time.time()},{message}"
             teleType = message.split(',')[1].strip()
             if teleType.startswith('motav'):
-                self.handleDataPlot(message, self.motAngVel, self.motAngVelPlot, "Motor Angular velocity")
+                self.handleDataPlot(message, self.motAngVel, self.motAngVelPlots, "Motor Angular velocity")
             elif teleType.startswith('angve'):
                 self.handleAngVel(message)
             elif teleType.startswith('angpo'):
@@ -386,15 +438,15 @@ class Main():
                 armState = "Extended" if message.split(',')[2].strip() == "1" else "Retracted"
                 self.armPosDisplay.setText(f"Arm position: {armState}")
             elif teleType.startswith('batvo'):
-                self.handleDataPlot(message, self.batVolt, self.batVoltPlot, "Voltage")
+                self.handleDataPlot(message, self.batVolt, self.batVoltPlots, "Voltage")
             elif teleType.startswith('elcur'):
-                self.handleDataPlot(message, self.eleCurrent_mA, self.eleCurrentPlot, "Current")
+                self.handleDataPlot(message, self.eleCurrent_mA, self.eleCurrentPlots, "Current")
             elif teleType.startswith('magst'):
                 eleState = "On" if message.split(',')[2].strip() == "1" else "Off"
                 self.magnetStatusDisplay.setText(f"Electromagnet status: {eleState}")
     
     def handleAngVel(self, message):
-        self.handleAngDataPlot(message, self.angVel, self.angVelPlot)
+        self.handleAngDataPlot(message, self.angVel, self.angVelPlots)
             
     def handleAngPos(self, message):
         msg = message.split(',')
@@ -403,7 +455,7 @@ class Main():
         self.attitude.setRoll(float(msg[2]))
         self.attitude.setPitch(float(msg[3]))
         self.compass.setAngle(float(msg[4]))
-        self.handleAngDataPlot(message, self.angPos, self.angPosPlot)
+        self.handleAngDataPlot(message, self.angPos, self.angPosPlots)
 
     def handleAngDataPlot(self, message, data, plot):
         msg = message.split(',')
@@ -418,7 +470,14 @@ class Main():
         #data[1] = data[1][-100:]
         #data[2] = data[2][-100:]
         #data[3] = data[3][-100:]
+        # Test if plot is array
+        if type(plot) == list:
+            for p in plot:
+                self.plotAngData(data, p)
+        else:
+            self.plotAngData(data, plot)
 
+    def plotAngData(self, data, plot):
         plot.clear()
         # Plot new data
         plot.plot(data[0], data[1], name="Roll", pen='r')
@@ -433,7 +492,14 @@ class Main():
         #self.angPos[0].append(time.time())
         data[0].append(float(msg[0]))
         data[1].append(float(msg[2]))
+        
+        if type(plot) == list:
+            for p in plot:
+                self.plotData(data, p, label)
+        else:
+            self.plotData(data, plot, label)
 
+    def plotData(self, data, plot, label):
         plot.clear()
         # Plot new data
         plot.plot(data[0], data[1], name=label, pen='r')
@@ -445,6 +511,12 @@ class Main():
         self.angPos = [[], [], [], []] # time, roll, pitch, yaw
         self.batVolt = [[], []] # time, voltage
         self.eleCurrent_mA = [[], []] # time, current
+
+        self.motAngVelPlots = []
+        self.angVelPlots = []
+        self.angPosPlots = []
+        self.batVoltPlots = []
+        self.eleCurrentPlots = []
     
 class MyServer(QtCore.QObject):
     def __init__(self, parent):
