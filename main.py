@@ -133,10 +133,7 @@ class Main():
         parent.addWidget(findDebrisButton)
         
         # Create button to extend arm
-        extendArmButton = QPushButton("Extend arm")
-        extendArmButton.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        extendArmButton.clicked.connect(lambda: self.server.sendText("exarm,1"))
-        parent.addWidget(extendArmButton)
+        self.createParameter(parent, "exarm", label="Extend arm [mm]", value=0, max=50, buttonLabel="Set")
         
         # Create button to retract arm
         retractArmButton = QPushButton("Retract arm")
