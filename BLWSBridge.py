@@ -6,10 +6,12 @@ from websockets.exceptions import ConnectionClosed
 
 # BluetoothSerialPort-Websocket bidirectional bridge
 class BluetoothWebsocketBridge:
+    lastTelemetry = ""
+    count = 0
     def main(self):
         print("Starting...")
         self.websocket = None
-        aioSerial = AioSerial(port='COM5', baudrate=115200, timeout=10)
+        aioSerial = AioSerial(port='COM8', baudrate=115200, timeout=10)
         self.aioSerial = aioSerial
         asyncio.run(self.async_loop(aioSerial))
         
@@ -23,11 +25,16 @@ class BluetoothWebsocketBridge:
 
     async def bluetooth_client(self, aioSerial):
         message = (await aioSerial.read_until_async()).decode(errors='ignore')
+        message = message.replace('\x00','')
         if message.endswith('\n'):
-            message = message[:-1]
-        print(f"Received bl message: {message}")
-        if self.websocket and self.websocket.open:
+            message = message.rstrip('\n')
+        msgSplit = message.split(',')
+        if not msgSplit[0].startswith("Invalid") and msgSplit[0] != self.lastTelemetry:
+            self.lastTelemetry = msgSplit[0]
+        if self.websocket and self.websocket.open and self.count % 1 == 0:
+            print(f"Received bl message: {message}")
             await self.websocket.send(message)
+        self.count += 1
 
     async def websocket_client(self):
         while True:
@@ -80,4 +87,9 @@ class BluetoothWebsocketBridge:
         await self.ws_loop(websocket, path)
 
 if __name__ == '__main__':
-    BluetoothWebsocketBridge().main()
+    try:
+        BluetoothWebsocketBridge().main()
+    except RuntimeError:
+        pass
+    except KeyboardInterrupt:
+        sys.exit(0)
