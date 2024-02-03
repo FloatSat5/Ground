@@ -17,6 +17,13 @@ def condFunc(func, cond):
     if cond:
         func()
 
+def isFloat(string):
+    try:
+        float(string)
+        return True
+    except ValueError:
+        return False
+
 class Main():
     def main(self):
         os.environ['QT_API'] = 'pyqt5'
@@ -111,32 +118,32 @@ class Main():
         # Create button to turn off satellite
         offButton = QPushButton("Turn off satellite")
         offButton.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        offButton.clicked.connect(lambda: self.server.sendText("swoff, 1"))
+        offButton.clicked.connect(lambda: self.server.sendText("swoff,1"))
         parent.addWidget(offButton)
         
         # Create button to start finding the debris
         findDebrisButton = QPushButton("Find debris")
         findDebrisButton.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        findDebrisButton.clicked.connect(lambda: self.server.sendText("fideb, 1"))
+        findDebrisButton.clicked.connect(lambda: self.server.sendText("fideb,1"))
         parent.addWidget(findDebrisButton)
         
         # Create button to extend arm
         extendArmButton = QPushButton("Extend arm")
         extendArmButton.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        extendArmButton.clicked.connect(lambda: self.server.sendText("exarm, 1"))
+        extendArmButton.clicked.connect(lambda: self.server.sendText("exarm,1"))
         parent.addWidget(extendArmButton)
         
         # Create button to retract arm
         retractArmButton = QPushButton("Retract arm")
         retractArmButton.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        retractArmButton.clicked.connect(lambda: self.server.sendText("rearm, 1"))
+        retractArmButton.clicked.connect(lambda: self.server.sendText("rearm,1"))
         parent.addWidget(retractArmButton)
         
         # Create toggle for electromagnet
         magnetToggle = QPushButton("Toggle electromagnet")
         magnetToggle.setStyleSheet("font-size: 14pt; font-weight: bold;background-color : darkred")
         magnetToggle.setCheckable(True)
-        magnetToggle.clicked.connect(lambda: self.server.sendText(f"semag, {1 if magnetToggle.isChecked() else 0}"))
+        magnetToggle.clicked.connect(lambda: self.server.sendText(f"semag,{1 if magnetToggle.isChecked() else 0}"))
         magnetToggle.clicked.connect(lambda: self.changeColor(magnetToggle))
         parent.addWidget(magnetToggle)
         
@@ -148,6 +155,18 @@ class Main():
         
         
     def createSensorTab(self, parent):
+        # Create motor angular velocity plot
+        motAngVelPlot = PlotWidget()
+        self.motAngVelPlot = motAngVelPlot
+        motAngVelPlot.setLabel('left', 'Angular velocity', units='deg/s')
+        motAngVelPlot.setLabel('bottom', 'Time', units='s')
+        motAngVelPlot.showGrid(x=True, y=True)
+        motAngVelPlot.setYRange(-90, 90)
+        motAngVelPlot.setXRange(0, 10)
+        motAngVelPlot.addLegend()
+        motAngVelPlot.plot(self.motAngVel[0], self.motAngVel[1], name="Angular velocity", pen='r')
+        parent.addWidget(motAngVelPlot)
+
         # Create angular position plot
         angPosPlot = PlotWidget()
         self.angPosPlot = angPosPlot
@@ -271,7 +290,7 @@ class Main():
             button.setStyleSheet("font-size: 12pt;")
             button.setMinimumWidth(70)
             #button.setMaximumWidth(50)
-            button.clicked.connect(lambda: self.server.sendText(f"{name}, {display.text()}"))
+            button.clicked.connect(lambda: self.server.sendText(f"{name},{display.text()}"))
             firstLine.addWidget(button)
         
         # Min value input
@@ -289,7 +308,7 @@ class Main():
         minInput.setText(str(min))
         # Set validator
         validator = QDoubleValidator()
-        validator.setBottom(0)
+        #validator.setBottom(0)
         validator.setDecimals(3)
         # make empty string invalid
         validator.setNotation(QDoubleValidator.StandardNotation)
@@ -328,10 +347,10 @@ class Main():
         secondLine.addWidget(slider)
         
         # connect textChanged to slider
-        display.textChanged.connect(lambda v: condFunc(lambda: slider.setValue(int(float(v)*scale)), v != ""))
+        display.textChanged.connect(lambda v: condFunc(lambda: slider.setValue(int(float(v)*scale)), isFloat(v)))
         
-        minInput.textChanged.connect(lambda v: condFunc(lambda: slider.setMinimum(int(float(v)*scale)), v != ""))
-        maxInput.textChanged.connect(lambda v: condFunc(lambda: slider.setMaximum(int(float(v)*scale)), v != ""))
+        minInput.textChanged.connect(lambda v: condFunc(lambda: slider.setMinimum(int(float(v)*scale)), isFloat(v)))
+        maxInput.textChanged.connect(lambda v: condFunc(lambda: slider.setMaximum(int(float(v)*scale)), isFloat(v)))
         
         verLayout.addLayout(firstLine)
         verLayout.addLayout(secondLine)
@@ -340,7 +359,7 @@ class Main():
     def valueChanged(self, value, display, name):
         display.setText(str(value))
         #self.server.sendText(json.dumps({name: value}))
-        self.server.sendText(f"{name}, {value}")
+        self.server.sendText(f"{name},{value}")
     
     def subFunction(self, message):
         #print(message)
@@ -353,8 +372,13 @@ class Main():
         else:
             if ',' not in message:
                 return
+            msgSplit = message.split(',')
+            if not isFloat(msgSplit[0]):
+                message = f"{time.time()},{message}"
             teleType = message.split(',')[1].strip()
-            if   teleType.startswith('angve'):
+            if teleType.startswith('motav'):
+                self.handleDataPlot(message, self.motAngVel, self.motAngVelPlot, "Motor Angular velocity")
+            elif teleType.startswith('angve'):
                 self.handleAngVel(message)
             elif teleType.startswith('angpo'):
                 self.handleAngPos(message)
@@ -416,6 +440,7 @@ class Main():
         plot.setXRange(data[0][-1] - 10, data[0][-1])
     
     def __init__(self):
+        self.motAngVel = [[], []] # time, angular velocity
         self.angVel = [[], [], [], []] # time, roll, pitch, yaw
         self.angPos = [[], [], [], []] # time, roll, pitch, yaw
         self.batVolt = [[], []] # time, voltage
@@ -450,12 +475,13 @@ class MyServer(QtCore.QObject):
         if (self.clientConnection):
             for function in self.subFunctions:
                 function(message)
-            else:
-                self.clientConnection.sendTextMessage(message)
+            #else:
+            #    self.clientConnection.sendTextMessage(message)
 
     def processBinaryMessage(self,  message):
-        if (self.clientConnection):
-            self.clientConnection.sendBinaryMessage(message)
+        pass
+        #if (self.clientConnection):
+        #    self.clientConnection.sendBinaryMessage(message)
 
     def socketDisconnected(self):
         if (self.clientConnection):
