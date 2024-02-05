@@ -12,6 +12,7 @@ import json
 from pyqtgraph import PlotWidget, plot
 import time
 from compass import CompassWidget
+from PyQt5.QtCore import QTimer
 
 def condFunc(func, cond):
     if cond:
@@ -107,6 +108,21 @@ class Main():
         self.createPIDTab(tabPID.layout)
         tabPID.setLayout(tabPID.layout)
 
+        self.connectionLED = QLabel('C', tabs)
+        self.connectionLED.move(850, 2)
+        self.connectionLED.resize(26, 26)
+        # setting up border and radius
+        self.connectionLED.setStyleSheet(self.ledStylesheet("darkGreen"))
+        self.connectionLED.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.batVoltLED = QLabel('P', tabs)
+        self.batVoltLED.move(890, 2)
+        self.batVoltLED.resize(26, 26)
+        self.batVoltLED.setStyleSheet(self.ledStylesheet("darkRed"))
+        self.batVoltLED.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.startBlinkingPowerLED()
+
         # 4. Show your application's GUI
         window.show()
         tabs.setCurrentIndex(1)
@@ -136,10 +152,7 @@ class Main():
         self.createParameter(parent, "exarm", label="Extend arm [mm]", value=0, max=50, buttonLabel="Set")
         
         # Create button to retract arm
-        retractArmButton = QPushButton("Retract arm")
-        retractArmButton.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        retractArmButton.clicked.connect(lambda: self.server.sendText("rearm,1"))
-        parent.addWidget(retractArmButton)
+        self.createParameter(parent, "rearm", label="Retract arm [mm]", value=0, max=50, buttonLabel="Set")
         
         # Create toggle for electromagnet
         magnetToggle = QPushButton("Toggle electromagnet")
@@ -418,6 +431,8 @@ class Main():
                 self.attitude.setPitch(msg["pitch"])
             if "roll" in msg:
                 self.attitude.setRoll(msg["roll"])
+            if "blConnected" in msg and msg["blConnected"] == True:
+                self.connectionLED.setStyleSheet(self.ledStylesheet("#00CC00"))
         else:
             if ',' not in message:
                 return
@@ -436,6 +451,9 @@ class Main():
                 self.armPosDisplay.setText(f"Arm position: {armState}")
             elif teleType.startswith('batvo'):
                 self.handleDataPlot(message, self.batVolt, self.batVoltPlots, "Voltage")
+                if self.batVolt[1][-1] < 12:
+                    self.batVoltLED.setStyleSheet(self.ledStylesheet("#FF0000"))
+                    self.startBlinkingPowerLED()
             elif teleType.startswith('elcur'):
                 self.handleDataPlot(message, self.eleCurrent_mA, self.eleCurrentPlots, "Current")
             elif teleType.startswith('magst'):
@@ -501,6 +519,22 @@ class Main():
         # Plot new data
         plot.plot(data[0], data[1], name=label, pen='r')
         plot.setXRange(data[0][-1] - 10, data[0][-1])
+    
+    def ledStylesheet(self, color):
+        return f"border-radius: 13px; background-color : {color};font-size: 12pt;"
+    
+    def startBlinkingPowerLED(self):
+        timer = QTimer()
+        timer.timeout.connect(self.blinkPowerLED)  # execute `display_time`
+        timer.setInterval(1000)  # 1000ms = 1s
+        timer.start()
+        self.blinkPowerLED()
+
+    def blinkPowerLED(self):
+        if self.batVoltLED.styleSheet() == self.ledStylesheet("darkRed"):
+            self.batVoltLED.setStyleSheet(self.ledStylesheet("#FF0000"))
+        else:
+            self.batVoltLED.setStyleSheet(self.ledStylesheet("darkRed"))
     
     def __init__(self):
         self.motAngVel = [[], []] # time, angular velocity
