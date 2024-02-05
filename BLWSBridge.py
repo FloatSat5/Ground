@@ -8,10 +8,11 @@ from websockets.exceptions import ConnectionClosed
 class BluetoothWebsocketBridge:
     lastTelemetry = ""
     count = 0
+    blConnected = False
     def main(self):
         print("Starting...")
         self.websocket = None
-        aioSerial = AioSerial(port='COM8', baudrate=115200, timeout=10)
+        aioSerial = AioSerial(port='COM8', baudrate=115200) #, timeout=10)
         self.aioSerial = aioSerial
         asyncio.run(self.async_loop(aioSerial))
         
@@ -25,6 +26,7 @@ class BluetoothWebsocketBridge:
 
     async def bluetooth_client(self, aioSerial):
         message = (await aioSerial.read_until_async()).decode(errors='ignore')
+        blConnected = True
         message = message.replace('\x00','')
         if message.endswith('\n'):
             message = message.rstrip('\n')
@@ -33,7 +35,9 @@ class BluetoothWebsocketBridge:
             self.lastTelemetry = msgSplit[0]
         if self.websocket and self.websocket.open and self.count % 1 == 0:
             print(f"Received bl message: {message}")
-            await self.websocket.send(message)
+            msgs = message.split(';')
+            for msg in msgs:
+                await self.websocket.send(msg)
         self.count += 1
 
     async def websocket_client(self):
@@ -55,6 +59,9 @@ class BluetoothWebsocketBridge:
             await self.ws_loop(websocket)
 
     async def ws_loop(self, websocket, path=''):
+        #await asyncio.sleep(2)
+        #await websocket.send('batvo,11.9')
+        await websocket.send('{ "blConnected": true}')
         while True:
             try:
                 await self.ws_handle(websocket)
