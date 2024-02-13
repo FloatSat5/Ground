@@ -149,10 +149,10 @@ class Main():
         parent.addWidget(findDebrisButton)
         
         # Create button to extend arm
-        self.createParameter(parent, "exarm", label="Extend arm [mm]", value=50, max=150, buttonLabel="Set")
+        self.createParameter(parent, "exarm", label="Extend arm [mm]", value=110, max=200, buttonLabel="Set")
         
         # Create button to retract arm
-        self.createParameter(parent, "rearm", label="Retract arm [mm]", value=50, max=150, buttonLabel="Set")
+        self.createParameter(parent, "rearm", label="Retract arm [mm]", value=200, max=200, buttonLabel="Set")
 
         self.armPos = self.createParameter(parent, "", label="Estimated Arm position[mm]", value=0, max=150, interactable=False)
         
@@ -225,9 +225,9 @@ class Main():
         plot.setYRange(-180, 180)
         plot.setXRange(0, 10)
         plot.addLegend()
-        plot.plot(self.angVel[0], self.angVel[1], name="Roll", pen='r')
+        plot.plot(self.angVel[0], self.angVel[3], name="Roll", pen='r')
         plot.plot(self.angVel[0], self.angVel[2], name="Pitch", pen='g')
-        plot.plot(self.angVel[0], self.angVel[3], name="Yaw", pen='b')
+        plot.plot(self.angVel[0], self.angVel[1], name="Yaw", pen='b')
         if name == "Angular position":
             self.plotLines["sangp"].append(plot.addLine(x=None, y=0))
         elif name == "Angular velocity":
@@ -287,10 +287,21 @@ class Main():
         parent.addWidget(plotDropdown)
         parent.addWidget(list(plotDict.values())[0])
 
+        # Create toggle to hide roll and pitch
+        hideRollPitchToggle = QPushButton("Hide roll and pitch")
+        hideRollPitchToggle.setStyleSheet("font-size: 14pt; font-weight: bold;background-color : darkred")
+        hideRollPitchToggle.setCheckable(True)
+        hideRollPitchToggle.clicked.connect(lambda: self.setHideRollPitch(hideRollPitchToggle))
+        parent.addWidget(hideRollPitchToggle)
+
+    def setHideRollPitch(self, hideRollPitchToggle):
+        self.hideRollPitch = hideRollPitchToggle.isChecked()
+        self.changeColor(hideRollPitchToggle)
+
     def changePlot(self, index, plotDict, parent):
         lastPlot = parent.itemAt(1).widget()
         lastPlot.setParent(None)
-        parent.addWidget(list(plotDict.values())[index])
+        parent.insertWidget(1, list(plotDict.values())[index])
 
         
     def createPIDTab(self, parent):
@@ -445,7 +456,7 @@ class Main():
             mmValue = value if name == "exarm" else -value
             armPosition += mmValue
             self.armPos.setText(f"{armPosition:.3f}")
-            self.server.sendText(f"{name},{(value/self.arm_mmPerSec):.3f}")
+            self.server.sendText(f"{name},{(value/self.arm_mmPerMiliSec):.3f}")
         else:
             self.server.sendText(f"{name},{value}")
     
@@ -521,9 +532,10 @@ class Main():
     def plotAngData(self, data, plot):
         plot.clear()
         # Plot new data
-        plot.plot(data[0], data[1], name="Roll", pen='r')
-        plot.plot(data[0], data[2], name="Pitch", pen='g')
-        plot.plot(data[0], data[3], name="Yaw", pen='b')
+        if not self.hideRollPitch:
+            plot.plot(data[0], data[3], name="Roll", pen='r')
+            plot.plot(data[0], data[2], name="Pitch", pen='g')
+        plot.plot(data[0], data[1], name="Yaw", pen='b')
         plot.setXRange(data[0][-1] - 10, data[0][-1])
         
     def handleDataPlot(self, message, data, plot, label):
@@ -564,8 +576,8 @@ class Main():
     
     def __init__(self):
         self.motAngVel = [[], []] # time, angular velocity
-        self.angVel = [[], [], [], []] # time, roll, pitch, yaw
-        self.angPos = [[], [], [], []] # time, roll, pitch, yaw
+        self.angVel = [[], [], [], []] # time, yaw, pitch, roll
+        self.angPos = [[], [], [], []] # time, yaw, pitch, roll
         self.batVolt = [[], []] # time, voltage
         self.eleCurrent_mA = [[], []] # time, current
 
@@ -579,7 +591,8 @@ class Main():
         for x in ["mosav", "sangp", "sangv"]:
             self.plotLines[x] = []
 
-        self.arm_mmPerSec = 30
+        self.arm_mmPerMiliSec = 30*10**-3
+        self.hideRollPitch = False
     
 class MyServer(QtCore.QObject):
     def __init__(self, parent):
