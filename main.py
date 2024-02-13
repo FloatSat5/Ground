@@ -458,6 +458,7 @@ class Main():
         if name in self.plotLines:
             for line in self.plotLines[name]:
                 line.setValue(value)
+                self.controlValues[name] = value
         if name == "exarm" or name == "rearm":
             armPosition = float(self.armPos.text())
             mmValue = value if name == "exarm" else -value
@@ -485,7 +486,7 @@ class Main():
                 message = f"{time.time()},{message}"
             teleType = message.split(',')[1].strip()
             if teleType.startswith('motav'):
-                self.handleDataPlot(message, self.motAngVel, self.motAngVelPlots, "Motor Angular velocity")
+                self.handleDataPlot(message, self.motAngVel, self.motAngVelPlots, "Motor Angular velocity", lineValue=self.controlValues["mosav"])
             elif teleType.startswith('angve'):
                 self.handleAngVel(message)
             elif teleType.startswith('angpo'):
@@ -505,7 +506,7 @@ class Main():
                 self.magnetStatusDisplay.setText(f"Electromagnet status: {eleState}")
     
     def handleAngVel(self, message):
-        self.handleAngDataPlot(message, self.angVel, self.angVelPlots)
+        self.handleAngDataPlot(message, self.angVel, self.angVelPlots, self.controlValues["sangv"])
             
     def handleAngPos(self, message):
         msg = message.split(',')
@@ -518,9 +519,9 @@ class Main():
         self.attitude.setPitch(pitch)
         self.compass.setAngle(yaw)
         clampedMessage = f"{msg[0]},{msg[1]},{yaw},{pitch},{roll}"
-        self.handleAngDataPlot(clampedMessage, self.angPos, self.angPosPlots)
+        self.handleAngDataPlot(clampedMessage, self.angPos, self.angPosPlots, self.controlValues["sangp"])
 
-    def handleAngDataPlot(self, message, data, plot):
+    def handleAngDataPlot(self, message, data, plot, lineValue=None):
         msg = message.split(',')
         if len(msg) != 5:
             return
@@ -536,11 +537,11 @@ class Main():
         # Test if plot is array
         if type(plot) == list:
             for p in plot:
-                self.plotAngData(data, p)
+                self.plotAngData(data, p, lineValue)
         else:
-            self.plotAngData(data, plot)
+            self.plotAngData(data, plot, lineValue)
 
-    def plotAngData(self, data, plot):
+    def plotAngData(self, data, plot, lineValue=None):
         plot.clear()
         # Plot new data
         if not self.hideRollPitch:
@@ -548,8 +549,10 @@ class Main():
             plot.plot(data[0], data[2], name="Pitch", pen='g')
         plot.plot(data[0], data[1], name="Yaw", pen='b')
         plot.setXRange(data[0][-1] - 10, data[0][-1])
+        if lineValue is not None:
+            plot.addLine(x=None, y=lineValue)
         
-    def handleDataPlot(self, message, data, plot, label):
+    def handleDataPlot(self, message, data, plot, label, lineValue=None):
         msg = message.split(',')
         if len(msg) != 3:
             return
@@ -559,15 +562,17 @@ class Main():
         
         if type(plot) == list:
             for p in plot:
-                self.plotData(data, p, label)
+                self.plotData(data, p, label, lineValue)
         else:
-            self.plotData(data, plot, label)
+            self.plotData(data, plot, label, lineValue)
 
-    def plotData(self, data, plot, label):
+    def plotData(self, data, plot, label, lineValue=None):
         plot.clear()
         # Plot new data
         plot.plot(data[0], data[1], name=label, pen='r')
         plot.setXRange(data[0][-1] - 10, data[0][-1])
+        if lineValue is not None:
+            plot.addLine(x=None, y=lineValue)
     
     def ledStylesheet(self, color):
         return f"border-radius: 13px; background-color : {color};font-size: 12pt;"
@@ -599,8 +604,10 @@ class Main():
         self.eleCurrentPlots = []
 
         self.plotLines = {}
+        self.controlValues = {}
         for x in ["mosav", "sangp", "sangv"]:
             self.plotLines[x] = []
+            self.controlValues[x] = 0
 
         self.arm_mmPerMiliSec = 30*10**-3
         self.hideRollPitch = False
