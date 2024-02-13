@@ -149,10 +149,10 @@ class Main():
         parent.addWidget(findDebrisButton)
         
         # Create button to extend arm
-        self.createParameter(parent, "exarm", label="Extend arm [mm]", value=0, max=50, buttonLabel="Set")
+        self.createParameter(parent, "exarm", label="Extend arm [mm]", value=1000, max=1000, buttonLabel="Set")
         
         # Create button to retract arm
-        self.createParameter(parent, "rearm", label="Retract arm [mm]", value=0, max=50, buttonLabel="Set")
+        self.createParameter(parent, "rearm", label="Retract arm [mm]", value=1000, max=1000, buttonLabel="Set")
         
         # Create toggle for electromagnet
         magnetToggle = QPushButton("Toggle electromagnet")
