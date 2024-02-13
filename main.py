@@ -61,6 +61,7 @@ class Main():
             
         # Initialize tab screen
         tabs = QTabWidget()
+        self.tabs = tabs
         tabOverview = QWidget()
         tabMission = QWidget()
         tabSensors = QWidget()
@@ -109,6 +110,7 @@ class Main():
         tabCustom.layout = QVBoxLayout()
         self.createCustomTab(tabCustom.layout)
         tabCustom.setLayout(tabCustom.layout)
+        self.tabCustom = tabCustom
         
         # Add elements to mission tab
         tabPID.layout = QVBoxLayout()
@@ -139,9 +141,9 @@ class Main():
         sys.exit(app.exec())
         
     def createMissionTab(self, parent):
-        self.createParameter(parent, "mosav", label="Motor angular velocity [deg/min]", max=180, buttonLabel="Set")
-        self.createParameter(parent, "sangp", label="Satellite angular position [deg]", min=-180, max=180, buttonLabel="Set")
-        self.createParameter(parent, "sangv", label="Satellite angular velocity [deg/min]", max=180, buttonLabel="Set")
+        self.createParameter(parent, "mosav", label="Motor angular velocity [deg/min]", max=180, buttonLabel="Set", plotIndex=0)
+        self.createParameter(parent, "sangp", label="Satellite angular position [deg]", min=-180, max=180, buttonLabel="Set", plotIndex=1)
+        self.createParameter(parent, "sangv", label="Satellite angular velocity [deg/min]", max=180, buttonLabel="Set", plotIndex=2)
         
         # Create button to turn off satellite
         offButton = QPushButton("Turn off satellite")
@@ -291,6 +293,7 @@ class Main():
         plotDropdown = QComboBox()
         plotDropdown.addItems(list(plotDict.keys()))
         plotDropdown.currentIndexChanged.connect(lambda i: self.changePlot(i, self.plotDict, parent))
+        self.plotDropdown = plotDropdown
         parent.addWidget(plotDropdown)
         parent.addWidget(list(plotDict.values())[0])
 
@@ -305,10 +308,14 @@ class Main():
         self.hideRollPitch = hideRollPitchToggle.isChecked()
         self.changeColor(hideRollPitchToggle)
 
-    def changePlot(self, index, plotDict, parent):
+    def changePlot(self, index, plotDict, parent=None):
+        if parent is None:
+            parent = self.tabCustom.layout
         lastPlot = parent.itemAt(1).widget()
         lastPlot.setParent(None)
         parent.insertWidget(1, list(plotDict.values())[index])
+        self.plotDropdown.setCurrentIndex(index)
+        #self.plotDropdown.setCurrentText(self.plotDropdown.itemText(index))
 
         
     def createPIDTab(self, parent):
@@ -347,7 +354,7 @@ class Main():
         parent.addLayout(satAngVelLayout)
         
         
-    def createParameter(self, parent, name, min = 0, max = 2, value = 1, decimalPlaces = 3, label=None, buttonLabel=None, interactable=True):
+    def createParameter(self, parent, name, min = 0, max = 2, value = 1, decimalPlaces = 3, label=None, buttonLabel=None, interactable=True, plotIndex=None):
         if label is None:
             label = name
         scale = 10**decimalPlaces
@@ -379,6 +386,9 @@ class Main():
             #button.setMaximumWidth(50)
             #button.clicked.connect(lambda: self.server.sendText(f"{name},{display.text()}"))
             button.clicked.connect(lambda: self.valueChanged(float(display.text()), display, name))
+            button.clicked.connect(lambda: self.tabs.setCurrentIndex(3))
+            if plotIndex is not None:
+                button.clicked.connect(lambda: self.changePlot(plotIndex, self.plotDict))
             firstLine.addWidget(button)
         
         # Min value input
