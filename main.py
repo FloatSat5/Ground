@@ -24,6 +24,13 @@ def isFloat(string):
         return True
     except ValueError:
         return False
+    
+def clampAngle(angle):
+    while angle > 180:
+        angle -= 360
+    while angle < -180:
+        angle += 360
+    return angle
 
 class Main():
     def main(self):
@@ -250,7 +257,7 @@ class Main():
         batVoltPlot.setLabel('left', 'Battery voltage', units='V')
         batVoltPlot.setLabel('bottom', 'Time', units='s')
         batVoltPlot.showGrid(x=True, y=True)
-        batVoltPlot.setYRange(0, 12)
+        batVoltPlot.setYRange(13, 14)
         batVoltPlot.setXRange(0, 10)
         batVoltPlot.addLegend()
         batVoltPlot.plot(self.batVolt[0], self.batVolt[1], name="Voltage", pen='r')
@@ -504,10 +511,14 @@ class Main():
         msg = message.split(',')
         if len(msg) != 5:
             return
-        self.attitude.setRoll(float(msg[2]))
-        self.attitude.setPitch(float(msg[3]))
-        self.compass.setAngle(float(msg[4]))
-        self.handleAngDataPlot(message, self.angPos, self.angPosPlots)
+        yaw = clampAngle(float(msg[2])) 
+        pitch = clampAngle(float(msg[3]))
+        roll = clampAngle(float(msg[4]))
+        self.attitude.setRoll(roll)
+        self.attitude.setPitch(pitch)
+        self.compass.setAngle(yaw)
+        clampedMessage = f"{msg[0]},{msg[1]},{yaw},{pitch},{roll}"
+        self.handleAngDataPlot(clampedMessage, self.angPos, self.angPosPlots)
 
     def handleAngDataPlot(self, message, data, plot):
         msg = message.split(',')
