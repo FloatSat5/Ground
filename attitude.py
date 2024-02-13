@@ -294,7 +294,8 @@ class AttitudeIndicator(QWidget):
 
         qp.translate(0,h//2)      
         if not self.hover:  
-            qp.drawText(w-fh*10, int(fh/2), str(round(self.hoverASL,2)))  # asl
+            #qp.drawText(w-fh*10, int(fh/2), str(round(self.hoverASL,2)))  # asl
+            pass
                
         
         if self.hover:
@@ -320,7 +321,7 @@ class AttitudeIndicator(QWidget):
          # FreeFall Detection
         qp.resetTransform()
         qp.translate(0,h/2)
-        qp.drawText(fh*6, int(fh/2), str(round(self.ff_acc+1,2))+'G')  # acc
+        #qp.drawText(fh*6, int(fh/2), str(round(self.ff_acc+1,2))+'G')  # acc
 
         pos_y = int(h/6*self.ff_acc)
 
