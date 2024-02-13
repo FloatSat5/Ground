@@ -149,10 +149,12 @@ class Main():
         parent.addWidget(findDebrisButton)
         
         # Create button to extend arm
-        self.createParameter(parent, "exarm", label="Extend arm [mm]", value=1000, max=1000, buttonLabel="Set")
+        self.createParameter(parent, "exarm", label="Extend arm [mm]", value=50, max=150, buttonLabel="Set")
         
         # Create button to retract arm
-        self.createParameter(parent, "rearm", label="Retract arm [mm]", value=1000, max=1000, buttonLabel="Set")
+        self.createParameter(parent, "rearm", label="Retract arm [mm]", value=50, max=150, buttonLabel="Set")
+
+        self.armPos = self.createParameter(parent, "", label="Estimated Arm position[mm]", value=0, max=150, interactable=False)
         
         # Create toggle for electromagnet
         magnetToggle = QPushButton("Toggle electromagnet")
@@ -327,7 +329,7 @@ class Main():
         parent.addLayout(satAngVelLayout)
         
         
-    def createParameter(self, parent, name, min = 0, max = 2, value = 1, decimalPlaces = 3, label=None, buttonLabel=None):
+    def createParameter(self, parent, name, min = 0, max = 2, value = 1, decimalPlaces = 3, label=None, buttonLabel=None, interactable=True):
         if label is None:
             label = name
         scale = 10**decimalPlaces
@@ -408,7 +410,7 @@ class Main():
         slider.setValue(int(value*scale))
         slider.setTickPosition(QSlider.TicksBelow)
         slider.setTickInterval(int(scale/10))
-        if buttonLabel is None:
+        if buttonLabel is None and interactable:
             slider.valueChanged.connect(lambda v: self.valueChanged(v/scale, display, name))
         else:
             slider.valueChanged.connect(lambda v: display.setText(str(v/scale)))
@@ -419,17 +421,33 @@ class Main():
         
         minInput.textChanged.connect(lambda v: condFunc(lambda: slider.setMinimum(int(float(v)*scale)), isFloat(v)))
         maxInput.textChanged.connect(lambda v: condFunc(lambda: slider.setMaximum(int(float(v)*scale)), isFloat(v)))
-        
+
+        if not interactable:
+            display.setReadOnly(True)
+            minInput.setReadOnly(True)
+            maxInput.setReadOnly(True)
+            slider.setDisabled(True)
+
         verLayout.addLayout(firstLine)
         verLayout.addLayout(secondLine)
         parent.addLayout(verLayout)
+        return display
     
     def valueChanged(self, value, display, name):
         display.setText(str(value))
         #self.server.sendText(json.dumps({name: value}))
-        self.server.sendText(f"{name},{value}")
-        for line in self.plotLines[name]:
-            line.setValue(value)
+        
+        if name in self.plotLines:
+            for line in self.plotLines[name]:
+                line.setValue(value)
+        if name == "exarm" or name == "rearm":
+            armPosition = float(self.armPos.text())
+            mmValue = value if name == "exarm" else -value
+            armPosition += mmValue
+            self.armPos.setText(f"{armPosition:.3f}")
+            self.server.sendText(f"{name},{(value/self.arm_mmPerSec):.3f}")
+        else:
+            self.server.sendText(f"{name},{value}")
     
     def subFunction(self, message):
         #print(message)
@@ -560,6 +578,8 @@ class Main():
         self.plotLines = {}
         for x in ["mosav", "sangp", "sangv"]:
             self.plotLines[x] = []
+
+        self.arm_mmPerSec = 30
     
 class MyServer(QtCore.QObject):
     def __init__(self, parent):
