@@ -518,7 +518,7 @@ class Main():
         self.attitude.setRoll(roll)
         self.attitude.setPitch(pitch)
         self.compass.setAngle(yaw)
-        clampedMessage = f"{msg[0]},{msg[1]},{yaw},{pitch},{roll}"
+        clampedMessage = f"{msg[0]},{msg[1]},{roll},{pitch},{yaw}"
         self.handleAngDataPlot(clampedMessage, self.angPos, self.angPosPlots, self.controlValues["sangp"])
 
     def handleAngDataPlot(self, message, data, plot, lineValue=None):
@@ -545,9 +545,9 @@ class Main():
         plot.clear()
         # Plot new data
         if not self.hideRollPitch:
-            plot.plot(data[0], data[3], name="Roll", pen='r')
+            plot.plot(data[0], data[1], name="Roll", pen='r')
             plot.plot(data[0], data[2], name="Pitch", pen='g')
-        plot.plot(data[0], data[1], name="Yaw", pen='b')
+        plot.plot(data[0], data[3], name="Yaw", pen='b')
         plot.setXRange(data[0][-1] - 10, data[0][-1])
         if lineValue is not None:
             plot.addLine(x=None, y=lineValue)
