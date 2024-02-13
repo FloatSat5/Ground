@@ -199,9 +199,9 @@ class Main():
         parent.addWidget(batVoltPlot)
         
         # Create current plot
-        eleCurrentPlot = self.createEleCurrentPlot()
-        self.eleCurrentPlots.append(eleCurrentPlot)
-        parent.addWidget(eleCurrentPlot)
+        #eleCurrentPlot = self.createEleCurrentPlot()
+        #self.eleCurrentPlots.append(eleCurrentPlot)
+        #parent.addWidget(eleCurrentPlot)
 
     def createMotAngVelPlot(self):
         motAngVelPlot = PlotWidget()
@@ -212,6 +212,7 @@ class Main():
         motAngVelPlot.setXRange(0, 10)
         motAngVelPlot.addLegend()
         motAngVelPlot.plot(self.motAngVel[0], self.motAngVel[1], name="Motor Angular velocity", pen='r')
+        self.plotLines["mosav"].append(motAngVelPlot.addLine(x=None, y=0))
         return motAngVelPlot
 
     def createAngPlot(self, name="Angular position", units="deg"):
@@ -225,6 +226,10 @@ class Main():
         plot.plot(self.angVel[0], self.angVel[1], name="Roll", pen='r')
         plot.plot(self.angVel[0], self.angVel[2], name="Pitch", pen='g')
         plot.plot(self.angVel[0], self.angVel[3], name="Yaw", pen='b')
+        if name == "Angular position":
+            self.plotLines["sangp"].append(plot.addLine(x=None, y=0))
+        elif name == "Angular velocity":
+            self.plotLines["sangv"].append(plot.addLine(x=None, y=0))
         return plot
 
     def createEleCurrentPlot(self):
@@ -352,7 +357,8 @@ class Main():
             button.setStyleSheet("font-size: 12pt;")
             button.setMinimumWidth(70)
             #button.setMaximumWidth(50)
-            button.clicked.connect(lambda: self.server.sendText(f"{name},{display.text()}"))
+            #button.clicked.connect(lambda: self.server.sendText(f"{name},{display.text()}"))
+            button.clicked.connect(lambda: self.valueChanged(float(display.text()), display, name))
             firstLine.addWidget(button)
         
         # Min value input
@@ -422,6 +428,8 @@ class Main():
         display.setText(str(value))
         #self.server.sendText(json.dumps({name: value}))
         self.server.sendText(f"{name},{value}")
+        for line in self.plotLines[name]:
+            line.setValue(value)
     
     def subFunction(self, message):
         #print(message)
@@ -548,6 +556,10 @@ class Main():
         self.angPosPlots = []
         self.batVoltPlots = []
         self.eleCurrentPlots = []
+
+        self.plotLines = {}
+        for x in ["mosav", "sangp", "sangv"]:
+            self.plotLines[x] = []
     
 class MyServer(QtCore.QObject):
     def __init__(self, parent):
