@@ -530,6 +530,8 @@ class Main():
         msg = message.split(',')
         if len(msg) != 5:
             return
+        if not isFloat(msg[2]) or not isFloat(msg[3]) or not isFloat(msg[4]):
+            return
         yaw = clampAngle(float(msg[2])) 
         pitch = clampAngle(float(msg[3]))
         roll = clampAngle(float(msg[4]))
@@ -544,6 +546,8 @@ class Main():
         if len(msg) != 5:
             return
         #self.angPos[0].append(time.time())
+        if not isFloat(msg[0]) or not isFloat(msg[2]) or not isFloat(msg[3]) or not isFloat(msg[4]):
+            return
         data[0].append(float(msg[0]))
         data[1].append(float(msg[2]))
         data[2].append(float(msg[3]))
@@ -575,6 +579,8 @@ class Main():
         if len(msg) != 3:
             return
         #self.angPos[0].append(time.time())
+        if not isFloat(msg[0]) or not isFloat(msg[2]):
+            return
         data[0].append(float(msg[0]))
         data[1].append(float(msg[2]))
         
