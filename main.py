@@ -302,14 +302,15 @@ class Main():
         hideRollPitchToggle = QPushButton("Hide roll and pitch")
         hideRollPitchToggle.setStyleSheet("font-size: 14pt; font-weight: bold;background-color : darkred")
         hideRollPitchToggle.setCheckable(True)
-        hideRollPitchToggle.clicked.connect(lambda: self.setHideRollPitch(hideRollPitchToggle))
+        hideRollPitchToggle.clicked.connect(lambda: self.updateHideRollPitch(hideRollPitchToggle))
+        self.hideRollPitchToggle = hideRollPitchToggle
         parent.addWidget(hideRollPitchToggle)
 
-    def setHideRollPitch(self, hideRollPitchToggle):
+    def updateHideRollPitch(self, hideRollPitchToggle):
         self.hideRollPitch = hideRollPitchToggle.isChecked()
         self.changeColor(hideRollPitchToggle)
 
-    def changePlot(self, index, plotDict, parent=None):
+    def changePlot(self, index, plotDict, parent=None, hideRollPitch=False):
         if parent is None:
             parent = self.tabCustom.layout
         lastPlot = parent.itemAt(1).widget()
@@ -317,6 +318,8 @@ class Main():
         parent.insertWidget(1, list(plotDict.values())[index])
         self.plotDropdown.setCurrentIndex(index)
         #self.plotDropdown.setCurrentText(self.plotDropdown.itemText(index))
+        if hideRollPitch and not self.hideRollPitchToggle.isChecked() and (index == 2 or index == 3):
+            self.hideRollPitchToggle.click()
 
         
     def createPIDTab(self, parent):
@@ -389,7 +392,7 @@ class Main():
             button.clicked.connect(lambda: self.valueChanged(float(display.text()), display, name))
             button.clicked.connect(lambda: self.tabs.setCurrentIndex(3))
             if plotIndex is not None:
-                button.clicked.connect(lambda: self.changePlot(plotIndex, self.plotDict))
+                button.clicked.connect(lambda: self.changePlot(plotIndex, self.plotDict, hideRollPitch=True))
             firstLine.addWidget(button)
         
         # Min value input
