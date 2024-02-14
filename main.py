@@ -13,6 +13,7 @@ from pyqtgraph import PlotWidget, plot
 import time
 from compass import CompassWidget
 from PyQt5.QtCore import QTimer
+import threading
 
 def condFunc(func, cond):
     if cond:
@@ -476,7 +477,14 @@ class Main():
             self.armPos.setText(f"{armPosition:.3f}")
             self.server.sendText(f"{name},{(value/self.arm_mmPerMiliSec):.3f}")
         else:
-            self.server.sendText(f"{name},{value}")
+            self.server.sendText("swoff,1")
+            new_thread = threading.Thread(target=self.waitThread, args=(2,f"{name},{value}"))
+            new_thread.start()
+    
+    def waitThread(self, time_to_wait: int, message):
+        time.sleep(time_to_wait)
+        self.server.sendSignal.emit(message)
+    
     
     def subFunction(self, message):
         #print(message)
@@ -623,6 +631,7 @@ class Main():
         self.hideRollPitch = False
     
 class MyServer(QtCore.QObject):
+    sendSignal = QtCore.pyqtSignal(str)
     def __init__(self, parent):
         super(QtCore.QObject, self).__init__(parent)
         self.clients = []
@@ -637,6 +646,9 @@ class MyServer(QtCore.QObject):
         #self.attitude = attitude
         self.subFunctions = []
         self.clientConnection = None
+        # Set up signal to send from different thread
+        self.sendSignal.connect(self.sendText)
+
 
     def onNewConnection(self):
         self.clientConnection = self.server.nextPendingConnection()
